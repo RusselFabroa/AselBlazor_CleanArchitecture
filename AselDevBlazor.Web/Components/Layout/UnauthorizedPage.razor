@@ -1,0 +1,121 @@
+﻿@* Web/Components/Pages/Unauthorized.razor *@
+@page "/unauthorized"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+<div class="unauth-root">
+    <div class="unauth-card">
+
+        <div class="unauth-icon">
+            <MudIcon Icon="@Icons.Material.Outlined.Block" />
+        </div>
+
+        <h2 class="unauth-title">Access Denied</h2>
+        <p class="unauth-desc">
+            You don't have permission to access this page.
+            Please contact your administrator if you believe this is a mistake.
+        </p>
+
+        <div class="unauth-actions">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Href="/"
+                       Class="unauth-btn">
+                Go to Dashboard
+            </MudButton>
+            <MudButton Variant="Variant.Outlined"
+                       Href="/login"
+                       Class="unauth-btn-ghost">
+                Sign in with different account
+            </MudButton>
+        </div>
+
+    </div>
+</div>
+
+<style>
+    .unauth-root {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #F8FAFC;
+        padding: 24px;
+    }
+
+    .unauth-card {
+        width: 100%;
+        max-width: 420px;
+        background: #FFFFFF;
+        border: 1px solid var(--asel-border);
+        border-radius: 18px;
+        padding: 48px 36px;
+        text-align: center;
+        box-shadow: var(--asel-shadow-md);
+        animation: cardIn 0.3s cubic-bezier(0.4,0,0.2,1) both;
+    }
+
+    @@keyframes cardIn {
+        from {
+            opacity: 0;
+            transform: translateY(12px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .unauth-icon {
+        width: 64px;
+        height: 64px;
+        border-radius: 16px;
+        background: rgba(239,68,68,0.08);
+        border: 1px solid rgba(239,68,68,0.20);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 20px;
+    }
+
+        .unauth-icon .mud-icon-root {
+            color: #EF4444 !important;
+            font-size: 32px !important;
+        }
+
+    .unauth-title {
+        font-family: var(--font-display);
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: var(--asel-text-primary);
+        margin: 0 0 10px;
+        letter-spacing: -0.3px;
+    }
+
+    .unauth-desc {
+        font-size: 0.825rem;
+        color: var(--asel-text-secondary);
+        line-height: 1.65;
+        margin: 0 0 28px;
+    }
+
+    .unauth-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .unauth-btn {
+        border-radius: 10px !important;
+        font-family: var(--font-display) !important;
+        font-weight: 600 !important;
+    }
+
+    .unauth-btn-ghost {
+        border-radius: 10px !important;
+        font-family: var(--font-display) !important;
+        font-weight: 600 !important;
+        border-color: var(--asel-border) !important;
+        color: var(--asel-text-secondary) !important;
+    }
+</style>

@@ -1,0 +1,20 @@
+﻿@* Web/Components/Auth/RedirectToLogin.razor *@
+@inject NavigationManager NavManager
+@inject ISnackbar Snackbar
+
+@code {
+    protected override void OnInitialized()
+    {
+        var currentUrl = NavManager.Uri;
+        var baseUrl = NavManager.BaseUri;
+
+        // Store the return URL so we can redirect back after login
+        var returnUrl = currentUrl.Replace(baseUrl, "/");
+
+        Snackbar.Add("Please sign in to continue.", Severity.Warning);
+
+        NavManager.NavigateTo(
+            $"/login?returnUrl={Uri.EscapeDataString(returnUrl)}",
+            forceLoad: false);
+    }
+}

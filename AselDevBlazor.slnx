@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="AselDevBlazor.Application/AselDevBlazor.Application.csproj" />
+  <Project Path="AselDevBlazor.Domain/AselDevBlazor.Domain.csproj" />
+  <Project Path="AselDevBlazor.Infrastructure/AselDevBlazor.Infrastructure.csproj" />
+  <Project Path="AselDevBlazor.Web/AselDevBlazor.Web.csproj" />
+</Solution>

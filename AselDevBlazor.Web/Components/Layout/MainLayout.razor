@@ -1,0 +1,122 @@
+﻿@inherits LayoutComponentBase
+
+<MudThemeProvider Theme="_theme" @rendermode="InteractiveServer" />
+<MudDialogProvider FullWidth="true" MaxWidth="MaxWidth.Small" />
+<MudSnackbarProvider @rendermode="InteractiveServer" />
+<MudPopoverProvider @rendermode="InteractiveServer" />
+
+<MudLayout>
+
+    <!-- AppBar (NOT fixed to avoid overlap issues) -->
+    <AppBar OnMenuToggle="DrawerToggle" />
+
+    <!-- Sidebar -->
+    <MudDrawer @bind-Open="_drawerOpen"
+               Variant="DrawerVariant.Responsive"
+               ClipMode="DrawerClipMode.Always"
+               Elevation="0">
+
+        <NavMenu />
+
+    </MudDrawer>
+
+    <!-- Main Content -->
+    <MudMainContent>
+
+        <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="main-container">
+
+            @Body
+
+        </MudContainer>
+
+    </MudMainContent>
+
+</MudLayout>
+
+<style>
+    /* Minimal, purposeful spacing only */
+
+    .main-container {
+        padding: 24px;
+    }
+
+    @@media (max-width: 960px) {
+        .main-container
+
+    {
+        padding: 16px;
+    }
+
+    }
+</style>
+
+@code {
+    private bool _drawerOpen = false;
+
+    private void DrawerToggle()
+        => _drawerOpen = !_drawerOpen;
+
+    private MudTheme _theme = new MudTheme
+    {
+        PaletteLight = new PaletteLight
+        {
+            Primary = "#3B82F6",
+            Secondary = "#0F172A",
+
+            Background = "#F8FAFC",
+            Surface = "#FFFFFF",
+
+            AppbarBackground = "#FFFFFF",
+            AppbarText = "#0F172A",
+
+            DrawerBackground = "#FFFFFF",
+            DrawerText = "#0F172A",
+
+            TextPrimary = "#0F172A",
+            TextSecondary = "#64748B",
+
+            Divider = "rgba(148,163,184,0.2)"
+        },
+
+        Typography = new Typography
+        {
+            Default = new DefaultTypography
+            {
+                FontFamily = new[]
+                {
+                    "Inter",
+                    "Segoe UI Variable",
+                    "Segoe UI",
+                    "sans-serif"
+                },
+                FontSize = "1rem"
+            },
+            Caption = new CaptionTypography { FontSize = "0.75rem", FontWeight = "500" },
+            
+            H1 = new H1Typography { FontWeight = "700", FontSize = "1.6rem" },
+            H2 = new H2Typography { FontWeight = "700", FontSize = "1.4rem" },
+            H3 = new H3Typography { FontWeight = "600", FontSize = "1.2rem" },
+            H4 = new H4Typography { FontWeight = "600", FontSize = "1.05rem" },
+            H5 = new H5Typography { FontWeight = "600", FontSize = "1rem" },
+            H6 = new H6Typography { FontWeight = "600", FontSize = "0.8rem" },
+
+            Body1 = new Body1Typography { FontSize = "0.8rem" },
+            Body2 = new Body2Typography { FontSize = "0.7rem" },
+
+            Button = new ButtonTypography
+            {
+                FontSize = "0.8rem",
+                FontWeight = "600",
+                TextTransform = "none"
+            }
+        },
+        LayoutProperties = new LayoutProperties
+        {
+            DefaultBorderRadius = "8px",
+            DrawerWidthLeft = "250px",
+            DrawerWidthRight = "250px",
+            
+        }
+        
+    };
+}

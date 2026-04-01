@@ -1,0 +1,129 @@
+﻿@using AselDevBlazor.Infrastructure.Auth
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Nav
+
+<MudAppBar Elevation="1" Dense="true">
+
+    <!-- LEFT: Menu -->
+    <MudIconButton Icon="@Icons.Material.Outlined.Menu"
+                   Edge="Edge.Start"
+                   OnClick="ToggleDrawer" />
+
+    <!-- LOGO + BRAND -->
+    <MudStack Row AlignItems="AlignItems.Center" Spacing="1" Class="ml-2">
+
+        <!-- Replace with your real logo -->
+        <MudAvatar Size="Size.Small">
+            A
+        </MudAvatar>
+
+        <MudText Typo="Typo.h6">
+            AselDev
+        </MudText>
+
+    </MudStack>
+
+    <MudSpacer />
+
+    <!-- RIGHT SIDE -->
+    <MudStack Row AlignItems="AlignItems.Center" Spacing="1">
+
+        <!-- Notifications -->
+        <MudIconButton Icon="@Icons.Material.Outlined.NotificationsNone" />
+
+        <!-- Settings -->
+        <MudIconButton Icon="@Icons.Material.Outlined.Settings" />
+
+        <!-- USER DROPDOWN -->
+        <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+
+            <ActivatorContent>
+                <MudIconButton Icon="@Icons.Material.Outlined.AccountCircle" OnClick="@((e) => context.ToggleAsync())" />
+            </ActivatorContent>
+
+            <ChildContent>
+
+                <!-- USER INFO -->
+                <MudMenuItem>
+                    <MudStack Spacing="0">
+                        <MudText Typo="Typo.body2">@_userName</MudText>
+                        <MudText Typo="Typo.caption">@_userEmail</MudText>
+                    </MudStack>
+                </MudMenuItem>
+
+                <MudDivider />
+
+                @if (_isAuthenticated)
+                {
+                    <MudMenuItem Icon="@Icons.Material.Outlined.Person">
+                        Profile
+                    </MudMenuItem>
+
+                    <MudMenuItem Icon="@Icons.Material.Outlined.Settings">
+                        Account Settings
+                    </MudMenuItem>
+
+                    <MudDivider />
+
+                    <MudMenuItem Icon="@Icons.Material.Outlined.Logout"
+                                 OnClick="Logout">
+                        Logout
+                    </MudMenuItem>
+                }
+                else
+                {
+                    <MudMenuItem Icon="@Icons.Material.Outlined.Login"
+                                 OnClick="@(() => Nav.NavigateTo("/login"))">
+                        Login
+                    </MudMenuItem>
+                }
+
+            </ChildContent>
+
+        </MudMenu>
+
+    </MudStack>
+
+</MudAppBar>
+
+@code {
+
+    [Parameter] public EventCallback OnMenuToggle { get; set; }
+
+    private bool _isAuthenticated;
+    private string _userName = "Guest";
+    private string _userEmail = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = state.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            _isAuthenticated = true;
+
+            _userName = user.Identity.Name ?? "User";
+
+            _userEmail =
+                user.FindFirst(ClaimTypes.Email)?.Value ??
+                user.FindFirst("email")?.Value ??
+                "";
+        }
+    }
+
+    private async Task Logout()
+    {
+        if (AuthStateProvider is JwtAuthStateProvider jwt)
+        {
+            await jwt.RemoveTokenAsync();
+        }
+
+        Nav.NavigateTo("/", true);
+    }
+
+    private async Task ToggleDrawer()
+        => await OnMenuToggle.InvokeAsync();
+}

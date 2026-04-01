@@ -1,0 +1,821 @@
+﻿@page "/temperature-monitor"
+@using AselDevBlazor.Domain.Entities
+@using AselDevBlazor.Application.Common.Interfaces
+@using AselDevBlazor.Application.Features.Temperature
+@inject ITemperatureServices TemperatureService
+@inject ISnackbar Snackbar
+@implements IDisposable
+
+<PageTitle>Temperature Monitor</PageTitle>
+
+@* ── Page Header ── *@
+<div class="tmp-page-header">
+    <div class="tmp-header-left">
+        <div class="tmp-header-icon">
+            <MudIcon Icon="@Icons.Material.Outlined.DeviceThermostat" />
+        </div>
+        <div>
+            <h1 class="tmp-page-title">Temperature Monitor</h1>
+            <span class="tmp-page-sub">
+                Live sensor data from IoT devices
+            </span>
+        </div>
+    </div>
+
+    <div class="tmp-header-right">
+        @* Live indicator *@
+        <div class="tmp-live-badge @(_autoRefresh ? "tmp-live-badge--active" : "")">
+            <span class="tmp-live-dot"></span>
+            @(_autoRefresh ? "Live" : "Paused")
+        </div>
+
+        @* Next refresh countdown *@
+        @if (_autoRefresh)
+        {
+            <div class="tmp-countdown">
+                <MudIcon Icon="@Icons.Material.Outlined.Autorenew"
+                         />
+                Refreshing in @_countdownSeconds s
+            </div>
+        }
+
+        @* Pause / Resume *@
+        <MudTooltip Text="@(_autoRefresh ? "Pause auto-refresh" : "Resume auto-refresh")">
+            <MudIconButton Icon="@(_autoRefresh ? Icons.Material.Outlined.Pause : Icons.Material.Outlined.PlayArrow)"
+                           Class="tmp-ctrl-btn"
+                           OnClick="ToggleAutoRefresh" />
+        </MudTooltip>
+
+        @* Manual refresh *@
+        <MudTooltip Text="Refresh now">
+            <MudIconButton Icon="@Icons.Material.Outlined.Refresh"
+                           Class="@_refreshBtnClass"
+                           OnClick="RefreshNowAsync"
+                           Disabled="@_loading" />
+        </MudTooltip>
+    </div>
+</div>
+
+@* ── Summary Cards ── *@
+@if (_latestRecord is not null)
+{
+    <div class="tmp-summary-row">
+
+        @* Temperature card *@
+        <div class="tmp-summary-card tmp-summary-card--temp">
+            <div class="tmp-summary-top">
+                <span class="tmp-summary-label">Current Temperature</span>
+                <div class="tmp-summary-status-badge tmp-status-@GetTempStatusClass(_latestRecord.GetTemperatureStatus())">
+                    @_latestRecord.GetTemperatureStatus()
+                </div>
+            </div>
+            <div class="tmp-summary-value-row">
+                <span class="tmp-summary-value">@_latestRecord.temperature.ToString("F1")</span>
+                <span class="tmp-summary-unit">°C</span>
+            </div>
+            <div class="tmp-summary-footer">
+                <MudIcon Icon="@Icons.Material.Outlined.DeviceThermostat" Class="tmp-summary-icon" />
+                <span>@_latestRecord.deviceID</span>
+            </div>
+        </div>
+
+        @* Humidity card *@
+        <div class="tmp-summary-card tmp-summary-card--humid">
+            <div class="tmp-summary-top">
+                <span class="tmp-summary-label">Current Humidity</span>
+                <div class="tmp-summary-status-badge tmp-status-@GetHumidStatusClass(_latestRecord.GetHumidityStatus())">
+                    @_latestRecord.GetHumidityStatus()
+                </div>
+            </div>
+            <div class="tmp-summary-value-row">
+                <span class="tmp-summary-value">@_latestRecord.humidity.ToString("F1")</span>
+                <span class="tmp-summary-unit">%</span>
+            </div>
+            <div class="tmp-summary-footer">
+                <MudIcon Icon="@Icons.Material.Outlined.WaterDrop" Class="tmp-summary-icon" />
+                <span>@_latestRecord.Timestamp.ToString("HH:mm:ss")</span>
+            </div>
+        </div>
+
+        @* Stats card *@
+        <div class="tmp-summary-card tmp-summary-card--stats">
+            <div class="tmp-summary-top">
+                <span class="tmp-summary-label">Records Loaded</span>
+                <div class="tmp-summary-status-badge tmp-status-neutral">
+                    Last @_displayLimit
+                </div>
+            </div>
+            <div class="tmp-summary-value-row">
+                <span class="tmp-summary-value">@_records.Count</span>
+                <span class="tmp-summary-unit">rows</span>
+            </div>
+            <div class="tmp-summary-footer">
+                <MudIcon Icon="@Icons.Material.Outlined.Storage" Class="tmp-summary-icon" />
+                <span>Auto-refresh: 10s</span>
+            </div>
+        </div>
+
+        @* Avg Temperature card *@
+        <div class="tmp-summary-card tmp-summary-card--avg">
+            <div class="tmp-summary-top">
+                <span class="tmp-summary-label">Avg Temperature</span>
+                <div class="tmp-summary-status-badge tmp-status-neutral">
+                    @_records.Count rows
+                </div>
+            </div>
+            <div class="tmp-summary-value-row">
+                <span class="tmp-summary-value">
+                    @(_records.Any() ? _records.Average(r => r.temperature).ToString("F1") : "—")
+                </span>
+                <span class="tmp-summary-unit">°C</span>
+            </div>
+            <div class="tmp-summary-footer">
+                <MudIcon Icon="@Icons.Material.Outlined.Analytics" Class="tmp-summary-icon" />
+                <span>Avg Humidity: @(_records.Any() ? _records.Average(r => r.humidity).ToString("F1") : "—")%</span>
+            </div>
+        </div>
+
+    </div>
+}
+
+@* ── Controls Row ── *@
+<div class="tmp-controls-row">
+    <div class="tmp-limit-group">
+        <span class="tmp-limit-label">Show last</span>
+        @foreach (var limit in _limitOptions)
+        {
+            <button class="tmp-limit-btn @(_displayLimit == limit ? "tmp-limit-btn--active" : "")"
+                    @onclick="@(() => SetLimitAsync(limit))">
+                @limit
+            </button>
+        }
+        <span class="tmp-limit-label">records</span>
+    </div>
+
+    <div class="tmp-last-updated">
+        <MudIcon Icon="@Icons.Material.Outlined.AccessTime" Style="font-size:14px;" />
+        Last updated: @_lastUpdated.ToString("HH:mm:ss")
+    </div>
+</div>
+
+@* ── DataGrid ── *@
+<MudPaper Class="tmp-grid-paper" Elevation="0">
+    <MudDataGrid T="TemperatureData"
+                 Items="@_records"
+                 Loading="@_loading"
+                 Filterable="false"
+                 SortMode="SortMode.Single"
+                 Pageable="false"
+                 Dense="true"
+                 Hover="true"
+                 Striped="false"
+                 Bordered="false"
+                 Class="tmp-datagrid">
+
+        <ToolBarContent>
+            <MudText Typo="Typo.h6" Class="tmp-grid-title">
+                <MudIcon Icon="@Icons.Material.Outlined.TableChart" Class="mr-2" />
+                Sensor Readings
+            </MudText>
+            <MudSpacer />
+            <MudChip T="string"
+                     Color="Color.Default"
+                     Size="Size.Small"
+                     Icon="@Icons.Material.Outlined.Inventory2">
+                @_records.Count / @_displayLimit records
+            </MudChip>
+        </ToolBarContent>
+
+        <Columns>
+
+            <PropertyColumn Property="x => x.id"
+                            Title="#"
+                            Sortable="true"
+                            InitialDirection="SortDirection.Descending">
+                <CellTemplate>
+                    <span class="tmp-cell-id">#@context.Item.id</span>
+                </CellTemplate>
+            </PropertyColumn>
+
+            <PropertyColumn Property="x => x.deviceID"
+                            Title="Device"
+                            Sortable="true">
+                <CellTemplate>
+                    <div class="tmp-device-cell">
+                        <div class="tmp-device-dot"></div>
+                        <span class="tmp-device-id">@context.Item.deviceID</span>
+                    </div>
+                </CellTemplate>
+            </PropertyColumn>
+
+            <PropertyColumn Property="x => x.temperature"
+                            Title="Temperature"
+                            Sortable="true">
+                <CellTemplate>
+                    <div class="tmp-temp-cell">
+                        <span class="tmp-temp-value tmp-temp-@GetTempStatusClass(context.Item.GetTemperatureStatus())">
+                            @context.Item.temperature.ToString("F2") °C
+                        </span>
+                        <span class="tmp-status-pill tmp-status-@GetTempStatusClass(context.Item.GetTemperatureStatus())">
+                            @context.Item.GetTemperatureStatus()
+                        </span>
+                    </div>
+                </CellTemplate>
+            </PropertyColumn>
+
+            <PropertyColumn Property="x => x.humidity"
+                            Title="Humidity"
+                            Sortable="true">
+                <CellTemplate>
+                    <div class="tmp-humid-cell">
+                        <span class="tmp-humid-value tmp-humid-@GetHumidStatusClass(context.Item.GetHumidityStatus())">
+                            @context.Item.humidity.ToString("F2") %
+                        </span>
+                        <span class="tmp-status-pill tmp-status-@GetHumidStatusClass(context.Item.GetHumidityStatus())">
+                            @context.Item.GetHumidityStatus()
+                        </span>
+                    </div>
+                </CellTemplate>
+            </PropertyColumn>
+
+            <PropertyColumn Property="x => x.Timestamp"
+                            Title="Timestamp"
+                            Sortable="true">
+                <CellTemplate>
+                    <div class="tmp-time-cell">
+                        <span class="tmp-time-date">
+                            @context.Item.Timestamp.ToString("MMM dd, yyyy")
+                        </span>
+                        <span class="tmp-time-time">
+                            @context.Item.Timestamp.ToString("HH:mm:ss")
+                        </span>
+                    </div>
+                </CellTemplate>
+            </PropertyColumn>
+
+        </Columns>
+
+        <NoRecordsContent>
+            <div class="tmp-empty">
+                <MudIcon Icon="@Icons.Material.Outlined.SensorsOff" Class="tmp-empty-icon" />
+                <span>No sensor data available</span>
+            </div>
+        </NoRecordsContent>
+
+        <LoadingContent>
+            <div class="tmp-loading">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Small" />
+                <span>Fetching sensor data...</span>
+            </div>
+        </LoadingContent>
+
+    </MudDataGrid>
+</MudPaper>
+
+<style>
+    /* ── Page Header ── */
+    .tmp-page-header {
+        display:         flex;
+        align-items:     center;
+        justify-content: space-between;
+        margin-bottom:   24px;
+        flex-wrap:       wrap;
+        gap:             12px;
+    }
+
+    .tmp-header-left {
+        display:     flex;
+        align-items: center;
+        gap:         14px;
+    }
+
+    .tmp-header-icon {
+        width:           46px;
+        height:          46px;
+        border-radius:   12px;
+        background:      linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+        display:         flex;
+        align-items:     center;
+        justify-content: center;
+        box-shadow:      0 4px 12px rgba(245,158,11,0.30);
+        flex-shrink:     0;
+    }
+
+    .tmp-header-icon .mud-icon-root {
+        color:     #fff !important;
+        font-size: 24px !important;
+    }
+
+    .tmp-page-title {
+        font-family:    var(--font-display);
+        font-size:      22px;
+        font-weight:    700;
+        color:          var(--asel-text-primary);
+        margin:         0 0 2px;
+        letter-spacing: -0.3px;
+    }
+
+    .tmp-page-sub {
+        font-size:   13px;
+        color:       var(--asel-text-muted);
+        font-weight: 500;
+    }
+
+    .tmp-header-right {
+        display:     flex;
+        align-items: center;
+        gap:         8px;
+        flex-wrap:   wrap;
+    }
+
+    /* ── Live badge ── */
+    .tmp-live-badge {
+        display:        flex;
+        align-items:    center;
+        gap:            6px;
+        font-size:      12px;
+        font-weight:    600;
+        color:          var(--asel-text-muted);
+        background:     #F1F5F9;
+        border:         1px solid var(--asel-border);
+        border-radius:  99px;
+        padding:        4px 12px;
+        letter-spacing: 0.02em;
+        transition:     var(--asel-transition);
+    }
+
+    .tmp-live-badge--active {
+        color:      #059669;
+        background: rgba(5,150,105,0.08);
+        border:     1px solid rgba(5,150,105,0.20);
+    }
+
+    .tmp-live-dot {
+        width:         7px;
+        height:        7px;
+        background:    currentColor;
+        border-radius: 50%;
+    }
+
+    .tmp-live-badge--active .tmp-live-dot {
+        animation: livePulse 1.5s ease-in-out infinite;
+    }
+
+    @@keyframes livePulse {
+        0%, 100% { opacity: 1; transform: scale(1);    }
+        50%       { opacity: 0.5; transform: scale(1.3); }
+    }
+
+    /* ── Countdown ── */
+    .tmp-countdown {
+        display:     flex;
+        align-items: center;
+        gap:         5px;
+        font-family: var(--font-mono);
+        font-size:   12px;
+        font-weight: 600;
+        color:       var(--asel-text-secondary);
+        background:  #F8FAFC;
+        border:      1px solid var(--asel-border);
+        border-radius: 8px;
+        padding:     5px 10px;
+    }
+
+    .tmp-countdown-icon {
+        font-size: 15px !important;
+        color:     var(--asel-accent) !important;
+    }
+
+    /* ── Control buttons ── */
+    .tmp-ctrl-btn {
+        border-radius: 9px !important;
+        color:         var(--asel-text-secondary) !important;
+        transition:    var(--asel-transition) !important;
+    }
+
+    .tmp-ctrl-btn:hover {
+        background: var(--asel-accent-soft) !important;
+        color:      var(--asel-accent) !important;
+    }
+
+    /* ── Spin animation ── */
+    .tmp-spin {
+        animation: spin 1s linear infinite !important;
+    }
+
+    @@keyframes spin {
+        from { transform: rotate(0deg);   }
+        to   { transform: rotate(360deg); }
+    }
+
+    /* ── Summary cards ── */
+    .tmp-summary-row {
+        display:               grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap:                   14px;
+        margin-bottom:         20px;
+    }
+
+    .tmp-summary-card {
+        background:     #FFFFFF;
+        border:         1px solid var(--asel-border);
+        border-radius:  14px;
+        padding:        18px 20px;
+        display:        flex;
+        flex-direction: column;
+        gap:            8px;
+        transition:     var(--asel-transition);
+        position:       relative;
+        overflow:       hidden;
+    }
+
+    .tmp-summary-card::before {
+        content:       '';
+        position:      absolute;
+        top:           0;
+        left:          0;
+        right:         0;
+        height:        3px;
+        border-radius: 14px 14px 0 0;
+    }
+
+    .tmp-summary-card--temp::before  { background: linear-gradient(90deg, #F59E0B, #EF4444); }
+    .tmp-summary-card--humid::before { background: linear-gradient(90deg, #3B82F6, #06B6D4); }
+    .tmp-summary-card--stats::before { background: linear-gradient(90deg, #8B5CF6, #6366F1); }
+    .tmp-summary-card--avg::before   { background: linear-gradient(90deg, #10B981, #059669); }
+
+    .tmp-summary-card:hover {
+        box-shadow:   var(--asel-shadow-md);
+        border-color: rgba(148,163,184,0.35);
+    }
+
+    .tmp-summary-top {
+        display:         flex;
+        align-items:     center;
+        justify-content: space-between;
+    }
+
+    .tmp-summary-label {
+        font-size:      11.5px;
+        font-weight:    600;
+        color:          var(--asel-text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+    }
+
+    .tmp-summary-value-row {
+        display:     flex;
+        align-items: baseline;
+        gap:         4px;
+    }
+
+    .tmp-summary-value {
+        font-family:    var(--font-display);
+        font-size:      32px;
+        font-weight:    700;
+        color:          var(--asel-text-primary);
+        line-height:    1;
+        letter-spacing: -1px;
+    }
+
+    .tmp-summary-unit {
+        font-family: var(--font-body);
+        font-size:   16px;
+        font-weight: 500;
+        color:       var(--asel-text-muted);
+    }
+
+    .tmp-summary-footer {
+        display:     flex;
+        align-items: center;
+        gap:         6px;
+        font-size:   12px;
+        color:       var(--asel-text-muted);
+        margin-top:  2px;
+    }
+
+    .tmp-summary-icon {
+        font-size: 15px !important;
+        color:     var(--asel-text-muted) !important;
+    }
+
+    /* ── Status badges ── */
+    .tmp-summary-status-badge {
+        font-size:      10.5px;
+        font-weight:    700;
+        border-radius:  99px;
+        padding:        3px 9px;
+        letter-spacing: 0.04em;
+    }
+
+    .tmp-status-cold, .tmp-status-dry {
+        background: rgba(59,130,246,0.10);
+        color:      #3B82F6;
+        border:     1px solid rgba(59,130,246,0.20);
+    }
+
+    .tmp-status-comfortable {
+        background: rgba(16,185,129,0.10);
+        color:      #10B981;
+        border:     1px solid rgba(16,185,129,0.20);
+    }
+
+    .tmp-status-hot, .tmp-status-humid {
+        background: rgba(239,68,68,0.10);
+        color:      #EF4444;
+        border:     1px solid rgba(239,68,68,0.20);
+    }
+
+    .tmp-status-neutral {
+        background: #F1F5F9;
+        color:      var(--asel-text-secondary);
+        border:     1px solid var(--asel-border);
+    }
+
+    /* ── Controls row ── */
+    .tmp-controls-row {
+        display:         flex;
+        align-items:     center;
+        justify-content: space-between;
+        margin-bottom:   14px;
+        flex-wrap:       wrap;
+        gap:             10px;
+    }
+
+    .tmp-limit-group {
+        display:     flex;
+        align-items: center;
+        gap:         6px;
+        flex-wrap:   wrap;
+    }
+
+    .tmp-limit-label {
+        font-size:   13px;
+        font-weight: 500;
+        color:       var(--asel-text-secondary);
+    }
+
+    .tmp-limit-btn {
+        padding:       5px 13px;
+        border-radius: 8px;
+        border:        1px solid var(--asel-border);
+        background:    #FFFFFF;
+        font-family:   var(--font-mono);
+        font-size:     12.5px;
+        font-weight:   600;
+        color:         var(--asel-text-secondary);
+        cursor:        pointer;
+        transition:    var(--asel-transition);
+    }
+
+    .tmp-limit-btn:hover {
+        border-color: var(--asel-accent);
+        color:        var(--asel-accent);
+        background:   var(--asel-accent-soft);
+    }
+
+    .tmp-limit-btn--active {
+        background:   var(--asel-accent) !important;
+        border-color: var(--asel-accent) !important;
+        color:        #FFFFFF !important;
+        box-shadow:   0 2px 8px rgba(59,130,246,0.30);
+    }
+
+    .tmp-last-updated {
+        display:     flex;
+        align-items: center;
+        gap:         5px;
+        font-family: var(--font-mono);
+        font-size:   12px;
+        color:       var(--asel-text-muted);
+    }
+
+    /* ── DataGrid ── */
+    .tmp-grid-paper {
+        border:        1px solid var(--asel-border) !important;
+        border-radius: 14px !important;
+        overflow:      hidden;
+    }
+
+    .tmp-datagrid    { font-family: var(--font-body) !important; }
+
+    .tmp-grid-title {
+        font-family: var(--font-display) !important;
+        font-weight: 600 !important;
+        font-size:   15px !important;
+        display:     flex;
+        align-items: center;
+        color:       var(--asel-text-primary) !important;
+    }
+
+    /* ── Cell styles ── */
+    .tmp-cell-id {
+        font-family: var(--font-mono);
+        font-size:   12px;
+        font-weight: 600;
+        color:       var(--asel-text-muted);
+    }
+
+    .tmp-device-cell {
+        display:     flex;
+        align-items: center;
+        gap:         8px;
+    }
+
+    .tmp-device-dot {
+        width:         8px;
+        height:        8px;
+        border-radius: 50%;
+        background:    #10B981;
+        box-shadow:    0 0 0 2px rgba(16,185,129,0.25);
+        flex-shrink:   0;
+    }
+
+    .tmp-device-id {
+        font-family: var(--font-mono);
+        font-size:   12.5px;
+        font-weight: 600;
+        color:       var(--asel-text-primary);
+    }
+
+    .tmp-temp-cell, .tmp-humid-cell {
+        display:     flex;
+        align-items: center;
+        gap:         8px;
+    }
+
+    .tmp-temp-value, .tmp-humid-value {
+        font-family: var(--font-mono);
+        font-size:   13px;
+        font-weight: 700;
+    }
+
+    .tmp-temp-cold         { color: #3B82F6; }
+    .tmp-temp-comfortable  { color: #10B981; }
+    .tmp-temp-hot          { color: #EF4444; }
+    .tmp-humid-dry         { color: #3B82F6; }
+    .tmp-humid-comfortable { color: #10B981; }
+    .tmp-humid-humid       { color: #EF4444; }
+
+    .tmp-status-pill {
+        font-size:      10px;
+        font-weight:    600;
+        border-radius:  99px;
+        padding:        2px 7px;
+        letter-spacing: 0.03em;
+    }
+
+    .tmp-time-cell {
+        display:        flex;
+        flex-direction: column;
+        line-height:    1.3;
+    }
+
+    .tmp-time-date {
+        font-size:   12.5px;
+        font-weight: 600;
+        color:       var(--asel-text-primary);
+    }
+
+    .tmp-time-time {
+        font-family: var(--font-mono);
+        font-size:   11.5px;
+        color:       var(--asel-text-muted);
+    }
+
+    .tmp-empty, .tmp-loading {
+        display:        flex;
+        flex-direction: column;
+        align-items:    center;
+        gap:            10px;
+        padding:        48px 0;
+        color:          var(--asel-text-muted);
+        font-size:      14px;
+    }
+
+    .tmp-empty-icon {
+        font-size: 48px !important;
+        color:     var(--asel-border) !important;
+    }
+
+    /* ── Responsive ── */
+    @@media (max-width: 960px) {
+        .tmp-summary-row { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @@media (max-width: 600px) {
+        .tmp-summary-row  { grid-template-columns: repeat(2, 1fr); }
+        .tmp-page-header  { flex-direction: column; align-items: flex-start; }
+        .tmp-header-right { width: 100%; justify-content: flex-start; }
+    }
+</style>
+
+@code {
+    @* ── Data ── *@
+    private List<TemperatureData> _records       = new();
+    private TemperatureData?      _latestRecord  = null;
+    private bool                  _loading       = false;
+    private DateTime              _lastUpdated   = DateTime.Now;
+
+    @* ── Limit options ── *@
+    private int[]  _limitOptions  = { 25, 50, 100, 200 };
+    private int    _displayLimit  = 50;
+
+    @* ── Auto-refresh ── *@
+    private bool            _autoRefresh      = true;
+    private int             _countdownSeconds = 10;
+    private Timer?          _refreshTimer;
+    private Timer?          _countdownTimer;
+    private const int       RefreshInterval   = 10;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+        StartTimers();
+    }
+
+    private void StartTimers()
+    {
+        // Refresh timer — every 10 seconds
+        _refreshTimer = new Timer(async _ =>
+        {
+            if (_autoRefresh)
+            {
+                await InvokeAsync(async () =>
+                {
+                    await LoadDataAsync();
+                    _countdownSeconds = RefreshInterval;
+                    StateHasChanged();
+                });
+            }
+        }, null, TimeSpan.FromSeconds(RefreshInterval), TimeSpan.FromSeconds(RefreshInterval));
+
+        // Countdown timer — every 1 second
+        _countdownTimer = new Timer(_ =>
+        {
+            if (_autoRefresh && _countdownSeconds > 0)
+            {
+                _countdownSeconds--;
+                InvokeAsync(StateHasChanged);
+            }
+        }, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+    }
+
+    private async Task LoadDataAsync()
+    {
+        _loading = true;
+        try
+        {
+            var response = await TemperatureService.GetLatestAsync(_displayLimit);
+            if (response.Success && response.Data is not null)
+            {
+                _records      = response.Data;
+                _latestRecord = _records.FirstOrDefault();
+                _lastUpdated  = DateTime.Now;
+            }
+            else
+            {
+                Snackbar.Add(response.Message, Severity.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading data: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task RefreshNowAsync()
+    {
+        _countdownSeconds = RefreshInterval;
+        await LoadDataAsync();
+    }
+
+    private void ToggleAutoRefresh()
+    {
+        _autoRefresh = !_autoRefresh;
+        if (_autoRefresh) _countdownSeconds = RefreshInterval;
+    }
+
+    private async Task SetLimitAsync(int limit)
+    {
+        _displayLimit = limit;
+        await LoadDataAsync();
+    }
+
+    @* ── Status CSS class helpers ── *@
+    private string GetTempStatusClass(string status) => status.ToLower();
+    private string GetHumidStatusClass(string status) => status.ToLower();
+    private string _refreshBtnClass => _loading
+    ? "tmp-ctrl-btn tmp-spin"
+    : "tmp-ctrl-btn";
+    public void Dispose()
+    {
+        _refreshTimer?.Dispose();
+        _countdownTimer?.Dispose();
+    }
+}
