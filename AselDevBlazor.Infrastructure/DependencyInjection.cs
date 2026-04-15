@@ -29,11 +29,14 @@
 
 
 using AselDevBlazor.Application.Common.Interfaces;
+using AselDevBlazor.Application.Common.Interfaces.AI;
 using AselDevBlazor.Application.Common.Interfaces.AuthServices;
+using AselDevBlazor.Application.Features.AI;
 using AselDevBlazor.Application.Features.Attendance.Services;
 using AselDevBlazor.Application.Features.Auth;
 using AselDevBlazor.Application.Features.Temperature;
 using AselDevBlazor.Domain.Entities;
+using AselDevBlazor.Domain.Entities.AIModels.Ollama;
 using AselDevBlazor.Infrastructure.Auth;
 using AselDevBlazor.Infrastructure.Data;
 
@@ -171,6 +174,24 @@ public static class DependencyInjection
         services.AddScoped<ITemperatureServices, TemperatureService>();
         services.AddScoped<IAuthGuardService, AuthGuardService>();
 
+
+        // ── Ollama Settings ───────────────────────────────────────────────────
+        services.Configure<OllamaSettings>(
+          configuration.GetSection(OllamaSettings.Section));
+
+        // ── Ollama HttpClient ─────────────────────────────────────────────────
+        // Named HttpClient managed by IHttpClientFactory.
+        // BaseAddress and Timeout come from appsettings.json → "Ollama" section.
+
+        var ollamaSettings = configuration
+            .GetSection(OllamaSettings.Section)
+            .Get<OllamaSettings>() ?? new OllamaSettings();
+
+        services.AddHttpClient<IOllamaService, OllamaService>(client =>
+        {
+            client.BaseAddress = new Uri(ollamaSettings.BaseUrl);
+            client.Timeout = TimeSpan.FromSeconds(ollamaSettings.TimeoutSeconds);
+        });
 
 
 

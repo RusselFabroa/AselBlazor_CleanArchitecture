@@ -1,0 +1,444 @@
+﻿@page "/ollama-test"
+@using AselDevBlazor.Application.Common.Interfaces.AI
+@using AselDevBlazor.Domain.Entities.AIModels.Ollama
+@inject IOllamaService OllamaService
+@rendermode InteractiveServer
+
+<PageTitle>Ollama Service — Test Page</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="py-6">
+
+    @* ── Header ── *@
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <div>
+            <MudText Typo="Typo.h5" Style="font-weight:500;">Ollama Service Test</MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                Try the IOllamaService directly — chat history, system prompt, and parameters all wired up.
+            </MudText>
+        </div>
+        @* How does Service Works *@
+        @* MudTooltip wraps MudIconButton — not inside it *@
+        <MudTooltip Text="This page demonstrates a direct integration with the IOllamaService contract."
+                    Placement="Placement.Left">
+            <MudIconButton OnClick="ShowHowDialog"
+                           Icon="@Icons.Material.Outlined.Info" />
+        </MudTooltip>
+        <MudChip T="string"
+                 Icon="@(_isOnline ? Icons.Material.Filled.Circle : Icons.Material.Outlined.Circle)"
+                 Color="@(_isOnline ? Color.Success : Color.Error)"
+                 Variant="Variant.Filled"
+                 Size="Size.Small"
+                 Style="font-size:11px;">
+            @(_isOnline ? "Ollama Online" : "Ollama Offline")
+        </MudChip>
+    </MudStack>
+
+    @* ── Settings Panel ── *@
+    <MudExpansionPanels Elevation="0" Class="mb-4" Style="border:0.5px solid #e0e0e0; border-radius:10px;">
+        <MudExpansionPanel Text="Request Settings" Style="font-size:13px; font-weight:500;">
+            <MudGrid Spacing="3" Class="mt-1">
+
+                <MudItem xs="12" sm="6">
+                    @* Replace the model TextField with a Select *@
+                    <MudSelect @bind-Value="_DefaultRequest.Model"
+                               Label="Model"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
+                               FullWidth="true">
+                        @foreach (var model in _availableModels)
+                        {
+                            <MudSelectItem Value="@model">@model</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="6" sm="3">
+                    <MudNumericField @bind-Value="_DefaultRequest.Temperature"
+                                     Label="Temperature"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     Min="0.0" Max="2.0" Step="0.1"
+                                     Format="F1"
+                                     FullWidth="true" />
+                </MudItem>
+
+                <MudItem xs="6" sm="3">
+                    <MudNumericField @bind-Value="_DefaultRequest.NumPredict"
+                                     Label="Max Tokens"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     Min="50" Max="2048" Step="50"
+                                     FullWidth="true" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_DefaultRequest.SystemMessage"
+                                  Label="System Message"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Lines="4"
+                                  FullWidth="true"
+                                  HelperText="Leave blank for no system prompt." />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                        <MudSwitch @bind-Value="_DefaultRequest.Think"
+                                   Label="Enable Qwen3 Thinking Mode"
+                                   Color="Color.Primary"
+                                   Size="Size.Small" />
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            (turn off for JSON / intent detection)
+                        </MudText>
+                    </MudStack>
+                </MudItem>
+
+            </MudGrid>
+        </MudExpansionPanel>
+    </MudExpansionPanels>
+
+    @* ── Chat Window ── *@
+    <MudPaper Elevation="0"
+              Style="border:0.5px solid #e0e0e0; border-radius:10px; min-height:400px; display:flex; flex-direction:column;">
+
+        @* Messages area *@
+        <div style="flex:1; overflow-y:auto; padding:1.25rem; display:flex; flex-direction:column; gap:12px;"
+             id="chat-scroll">
+
+            @if (!_messages.Any())
+            {
+                <MudStack AlignItems="AlignItems.Center" Justify="Justify.Center" Style="flex:1; opacity:0.45; padding:3rem 0;">
+                    <MudIcon Icon="@Icons.Material.Outlined.Chat" Style="font-size:40px;" Color="Color.Secondary" />
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Send a message to start testing the service.
+                    </MudText>
+                </MudStack>
+            }
+
+            @foreach (var msg in _messages)
+            {
+                @if (msg.Role == "user")
+                {
+                    @* User bubble — right aligned *@
+                    <MudStack AlignItems="AlignItems.End">
+                        <MudPaper Elevation="0"
+                                  Style="background:#1F4E79; border-radius:12px 12px 2px 12px; padding:10px 14px; max-width:75%;">
+                            <MudText Typo="Typo.body2" Style="color:white; line-height:1.55; white-space:pre-wrap;">
+                                @msg.Content
+                            </MudText>
+                        </MudPaper>
+                        <MudText Typo="Typo.caption" Color="Color.Tertiary" Style="font-size:10px;">You</MudText>
+                    </MudStack>
+                }
+                else if (msg.Role == "assistant")
+                {
+                    @* Assistant bubble — left aligned *@
+                    <MudStack AlignItems="AlignItems.Start">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="mb-1">
+                            <MudIcon Icon="@Icons.Material.Filled.Memory"
+                                     Style="font-size:14px; color:#1F4E79;" />
+                            <MudText Typo="Typo.caption" Style="color:#1F4E79; font-size:10px; font-weight:500;">
+                                @_DefaultRequest.Model
+                            </MudText>
+                        </MudStack>
+                        <MudPaper Elevation="0"
+                                  Style="background:#F5F7FA; border:0.5px solid #e0e0e0; border-radius:2px 12px 12px 12px; padding:10px 14px; max-width:85%;">
+                            <MudText Typo="Typo.body2" Style="@GetMessageStyle(msg.Content)">
+                                @msg.Content
+                            </MudText>
+                        </MudPaper>
+                        <MudText Typo="Typo.caption" Color="Color.Tertiary" Style="font-size:10px;">Assistant</MudText>
+                    </MudStack>
+                }
+                else if (msg.Role == "_error")
+                {
+                    @* Error message *@
+                    <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Dense="true">
+                        @msg.Content
+                    </MudAlert>
+                }
+                else if (msg.Role == "_info")
+                {
+                    @* System info message *@
+                    <MudStack AlignItems="AlignItems.Center">
+                        <MudText Typo="Typo.caption" Color="Color.Tertiary" Style="font-size:10px;">
+                            @msg.Content
+                        </MudText>
+                    </MudStack>
+                }
+            }
+
+            @* Typing indicator *@
+            @if (_isLoading)
+            {
+                <MudStack AlignItems="AlignItems.Start">
+                    <MudPaper Elevation="0"
+                              Style="background:#F5F7FA; border:0.5px solid #e0e0e0; border-radius:2px 12px 12px 12px; padding:10px 16px;">
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Color="Color.Primary" />
+                    </MudPaper>
+                </MudStack>
+            }
+
+        </div>
+
+        <MudDivider />
+
+        @* Input row *@
+        <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2" Class="pa-3">
+            <MudTextField @bind-Value="_DefaultRequest.UserMessage"
+                          Placeholder="Type a message and press Enter…"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Lines="1"
+                          AutoGrow="true"
+                          MaxLines="4"
+                          FullWidth="true"
+                          Disabled="@_isLoading"
+                          OnKeyDown="@OnKeyDown"
+                          Immediate="true" />
+
+            <MudIconButton Icon="@Icons.Material.Filled.Send"
+                           Color="Color.Primary"
+                           Style="background:#1F4E79; color:white; border-radius:8px; width:40px; height:40px;"
+                           OnClick="SendMessage"
+                           Disabled="@(string.IsNullOrWhiteSpace(_DefaultRequest.UserMessage) || _isLoading)" />
+        </MudStack>
+
+    </MudPaper>
+
+    @* ── Bottom Action Row ── *@
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mt-3">
+
+        <MudButton Variant="Variant.Text"
+                   Color="Color.Default"
+                   Size="Size.Small"
+                   StartIcon="@Icons.Material.Filled.DeleteSweep"
+                   Style="text-transform:none; font-size:12px;"
+                   OnClick="ClearHistory"
+                   Disabled="@(!_messages.Any())">
+            Clear conversation
+        </MudButton>
+
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                History: @_chatHistory.Count turn@(_chatHistory.Count != 1 ? "s" : "")
+            </MudText>
+            <MudButton Variant="Variant.Outlined"
+                       Size="Size.Small"
+                       StartIcon="@Icons.Material.Filled.Wifi"
+                       Style="text-transform:none; font-size:12px;"
+                       OnClick="CheckHealth">
+                Ping Ollama
+            </MudButton>
+        </MudStack>
+
+    </MudStack>
+
+</MudContainer>
+
+<MudDialog Visible="_showHowDialog" Options="_howDialogOptions">
+    <DialogContent>
+        <MudText Typo="Typo.h6" Class="mb-2">How does this work?</MudText>
+        <MudText Typo="Typo.body2" Class="mb-4">
+            This page demonstrates a direct integration with the <code>IOllamaService</code> contract.
+            You can send messages, set system prompts, adjust parameters, and see the full chat history
+            in action.
+        </MudText>
+        <MudText Class="mb-3">This is how this service works</MudText>
+        <MudImage Src="/images/ollama_clean_architecture_structure.svg"
+                  Alt="Ollama Service Diagram"
+                  Style="width:100%; border:0.5px solid #e0e0e0; border-radius:8px;"
+                  Class="mb-4" />
+        <MudText Class="mb-3">The structure diagram shows which class lives in which layer. Now here's the call flow — what actually happens at runtime when OllamaTest.razor sends a message:</MudText>
+        <MudImage Src="/images/ollama_service_call_flow.svg"
+                  Alt="Ollama Service Diagram"
+                  Style="width:100%; border:0.5px solid #e0e0e0; border-radius:8px;"
+                  Class="mb-4" />
+        <MudButton Variant="Variant.Outlined"
+                   OnClick="CloseHowDialog">
+            Close
+        </MudButton>
+    </DialogContent>
+</MudDialog>
+@code {
+
+    // ── State ─────────────────────────────────────────────────────────────────
+
+ 
+    private bool   _isLoading     = false;
+    private bool   _isOnline      = false;
+    private List<string> _availableModels = new();
+
+    public OllamaChatRequest _DefaultRequest = new()
+    {
+        Model = "qwen3:1.7b",
+        SystemMessage = "You are a helpful assistant. Reply concisely.",
+        UserMessage = "Hello, Ollama!",
+        Temperature = 0.6,
+        TopK = 20,
+        TopP = 0.95,
+        RepeatPenalty = 1.0,
+        NumPredict = 512,
+        NumCtx = 4096,
+        Think = false,
+    };
+
+    // The actual chat history tracked by IOllamaService contract
+    // (user + assistant turns only — no system message)
+    private List<OllamaChatMessage> _chatHistory = new();
+
+    // UI-only display list — includes _error and _info pseudo-roles
+    private List<OllamaChatMessage> _messages = new();
+
+    // ── Lifecycle ─────────────────────────────────────────────────────────────
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isOnline = await OllamaService.IsAvailableAsync();
+
+        _availableModels = await OllamaService.GetAvailableModelsAsync();
+
+        // Set default to first available model
+        if (_availableModels.Any())
+            _DefaultRequest.Model = _availableModels.First();
+    }
+
+    // ── Actions ───────────────────────────────────────────────────────────────
+
+    private async Task SendMessage()
+    {
+        var input = _DefaultRequest.UserMessage.Trim();
+        if (string.IsNullOrWhiteSpace(input) || _isLoading) return;
+
+        _DefaultRequest.UserMessage = string.Empty;
+        _isLoading = true;
+
+        // Show user message in UI immediately
+        _messages.Add(new OllamaChatMessage { Role = "user", Content = input });
+        StateHasChanged();
+
+        try
+        {
+            // ── Call IOllamaService ───────────────────────────────────────────
+            var response = await OllamaService.ChatAsync(new OllamaChatRequest
+            {
+                Model         = _DefaultRequest.Model.Trim(),
+                SystemMessage = string.IsNullOrWhiteSpace(_DefaultRequest.SystemMessage)
+                                    ? null
+                                    : _DefaultRequest.SystemMessage.Trim(),
+                ChatHistory   = _chatHistory,       // current history
+                UserMessage   = input,
+                Temperature   = _DefaultRequest.Temperature,
+                TopK          = _DefaultRequest.TopK,
+                TopP          = _DefaultRequest.TopP,
+                RepeatPenalty = _DefaultRequest.RepeatPenalty,
+                NumPredict    = _DefaultRequest.NumPredict,
+                NumCtx        = _DefaultRequest.NumCtx,
+                Think         = _DefaultRequest.Think
+            });
+
+            if (response.IsSuccess)
+            {
+                // Show assistant reply in UI
+                _messages.Add(new OllamaChatMessage
+                {
+                    Role    = "assistant",
+                    Content = response.Reply
+                });
+
+                // Update history from the service response
+                // This is the UpdatedHistory from OllamaChatResponse
+                _chatHistory = response.UpdatedHistory;
+            }
+            else
+            {
+                _messages.Add(new OllamaChatMessage
+                {
+                    Role    = "_error",
+                    Content = $"Service error: {response.ErrorMessage}"
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            _messages.Add(new OllamaChatMessage
+            {
+                Role    = "_error",
+                Content = $"Unexpected error: {ex.Message}"
+            });
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private static string GetMessageStyle(string content)
+    {
+        bool isJson = IsJson(content);
+        string fontFamily = isJson ? "monospace" : "inherit";
+        string fontSize = isJson ? "12px" : "14px";
+        return $"line-height:1.6; white-space:pre-wrap; font-family:{fontFamily}; font-size:{fontSize};";
+    }
+
+    private async Task OnKeyDown(KeyboardEventArgs e)
+    {
+        // Send on Enter (not Shift+Enter — that adds a newline)
+        if (e.Key == "Enter" && !e.ShiftKey)
+            await SendMessage();
+    }
+
+    private void ClearHistory()
+    {
+        _chatHistory.Clear();
+        _messages.Clear();
+        _messages.Add(new OllamaChatMessage
+        {
+            Role    = "_info",
+            Content = "Conversation cleared. History reset."
+        });
+        StateHasChanged();
+    }
+
+    private async Task CheckHealth()
+    {
+        _isOnline = await OllamaService.IsAvailableAsync();
+        _messages.Add(new OllamaChatMessage
+        {
+            Role    = "_info",
+            Content = _isOnline
+                ? $"Ollama is online and reachable."
+                : "Ollama is NOT reachable. Check that it is running on your server."
+        });
+        StateHasChanged();
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Detects if the assistant reply looks like JSON so we can use monospace font.
+    /// </summary>
+    private static bool IsJson(string text)
+    {
+        var t = text.TrimStart();
+        return t.StartsWith("{") || t.StartsWith("[");
+    }
+
+
+    // private, not public
+    private bool _showHowDialog = false;
+
+    private readonly DialogOptions _howDialogOptions = new()
+    {
+        MaxWidth = MaxWidth.Medium,
+        FullWidth = true,
+        CloseButton = true,
+        CloseOnEscapeKey = false,
+        BackdropClick = false,
+        CloseOnNavigation = false
+    };
+
+    private void ShowHowDialog() => _showHowDialog = true;
+    private void CloseHowDialog() => _showHowDialog = false;
+}

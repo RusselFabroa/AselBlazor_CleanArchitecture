@@ -28,4 +28,8 @@
     <ProjectReference Include="..\AselDevBlazor.Domain\AselDevBlazor.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="AI\" />
+  </ItemGroup>
+
 </Project>
