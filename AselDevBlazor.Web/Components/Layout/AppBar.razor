@@ -6,23 +6,18 @@
 
 <MudAppBar Elevation="1" Dense="true">
 
-    <!-- LEFT: Menu -->
+    <!-- LEFT: Menu (visible on small screens) -->
     @* <MudIconButton Icon="@Icons.Material.Outlined.Menu"
                    Edge="Edge.Start"
-                   OnClick="ToggleDrawer" /> *@
+                   OnClick="ToggleDrawer"
+                   AriaLabel="Toggle navigation" /> *@
 
-    <!-- LOGO + BRAND -->
+    <!-- LOGO + BRAND (compact) -->
     <MudStack Row AlignItems="AlignItems.Center" Spacing="1" Class="ml-2">
-
-        <!-- Replace with your real logo -->
-        <MudAvatar Size="Size.Small">
-            AI
-        </MudAvatar>
-
-        <MudText Typo="Typo.h6">
-            DX AI Portal
-        </MudText>
-
+       
+            <MudImage Height="25" Src="images/tdklogo.png" />
+       
+        <MudText Typo="Typo.subtitle1" Class="d-none d-sm-inline">TPC DX</MudText>
     </MudStack>
 
     <MudSpacer />
@@ -40,7 +35,7 @@
         <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
 
             <ActivatorContent>
-                <MudIconButton Icon="@Icons.Material.Outlined.AccountCircle" OnClick="@((e) => context.ToggleAsync())" />
+                <MudIconButton Icon="@Icons.Material.Outlined.AccountCircle" />
             </ActivatorContent>
 
             <ChildContent>
@@ -95,7 +90,6 @@
     private bool _isAuthenticated;
     private string _userName = "Guest";
     private string _userEmail = "";
-
     protected override async Task OnInitializedAsync()
     {
         var state = await AuthStateProvider.GetAuthenticationStateAsync();

@@ -1,0 +1,464 @@
+@page "/"
+@layout Layout.NoLayout
+
+<MudContainer MaxWidth="MaxWidth.False" Class="clean-home px-0">
+    <section class="clean-hero">
+        <div class="hero-copy">
+            <div class="eyebrow">Blazor Clean Architecture</div>
+            <MudText Typo="Typo.h3" HtmlTag="h1" Class="hero-title">
+                Blazor Clean Architecture Starter Template
+            </MudText>
+            <MudText Typo="Typo.body1" Class="hero-subtitle">
+                A reusable .NET 8 Blazor Server foundation with clear boundaries across Domain, Application, Infrastructure, and Web layers.
+            </MudText>
+            <div class="hero-actions">
+                <MudButton Variant="Variant.Filled" Href="#architecture" Class="primary-action" EndIcon="@Icons.Material.Filled.ArrowForward">
+                    View Architecture
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" Href="#rules" Class="secondary-action">
+                    Architecture Rules
+                </MudButton>
+            </div>
+        </div>
+
+        <div class="hero-panel">
+            <div class="stack-map">
+                <div>
+                    <strong>Web</strong>
+                    <span>Blazor UI, controllers, middleware</span>
+                </div>
+                <div>
+                    <strong>Application</strong>
+                    <span>Use cases, services, workflows</span>
+                </div>
+                <div>
+                    <strong>Domain</strong>
+                    <span>Entities, rules, core model</span>
+                </div>
+                <div>
+                    <strong>Infrastructure</strong>
+                    <span>EF Core, Identity, logging, external services</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section-block overview-block">
+        <div class="section-heading">
+            <span>Overview</span>
+            <MudText Typo="Typo.h5" HtmlTag="h2">Production-Ready Foundation</MudText>
+        </div>
+        <div class="overview-grid">
+            <article>
+                <MudIcon Icon="@Icons.Material.Filled.AccountTree" />
+                <h3>Clean Separation</h3>
+                <p>Business rules, use cases, technical implementations, and UI concerns are separated into explicit projects.</p>
+            </article>
+            <article>
+                <MudIcon Icon="@Icons.Material.Filled.Security" />
+                <h3>Enterprise Access</h3>
+                <p>ASP.NET Identity, JWT authentication, authorization, and structured startup configuration are built in.</p>
+            </article>
+            <article>
+                <MudIcon Icon="@Icons.Material.Filled.Troubleshoot" />
+                <h3>Operational Visibility</h3>
+                <p>Serilog, Swagger, EF Core, and environment-based startup tasks support real deployment workflows.</p>
+            </article>
+        </div>
+    </section>
+
+    <section id="architecture" class="section-block">
+        <div class="section-heading">
+            <span>Architecture</span>
+            <MudText Typo="Typo.h5" HtmlTag="h2">Layer Responsibilities</MudText>
+        </div>
+        <div class="layer-grid">
+            <article class="layer-card">
+                <div class="layer-number">01</div>
+                <h3>Domain</h3>
+                <p>Core entities, business model, rules, repository contracts, and domain boundaries. It does not depend on other layers.</p>
+            </article>
+            <article class="layer-card">
+                <div class="layer-number">02</div>
+                <h3>Application</h3>
+                <p>Use cases, DTOs, application services, validation, workflow orchestration, and business authorization rules.</p>
+            </article>
+            <article class="layer-card">
+                <div class="layer-number">03</div>
+                <h3>Infrastructure</h3>
+                <p>EF Core DbContext, Identity, provider setup, logging implementation, external services, caching, and storage adapters.</p>
+            </article>
+            <article class="layer-card">
+                <div class="layer-number">04</div>
+                <h3>Web</h3>
+                <p>Blazor components, layouts, middleware, controllers, authorization policies, dependency injection, and user interaction.</p>
+            </article>
+        </div>
+    </section>
+
+    <section class="section-block dependency-block">
+        <div class="section-heading">
+            <span>Flow</span>
+            <MudText Typo="Typo.h5" HtmlTag="h2">Dependency Direction</MudText>
+        </div>
+        <div class="flow-grid">
+            <div class="flow-item">Web</div>
+            <MudIcon Icon="@Icons.Material.Filled.ArrowForward" />
+            <div class="flow-item">Application</div>
+            <MudIcon Icon="@Icons.Material.Filled.ArrowForward" />
+            <div class="flow-item">Domain</div>
+        </div>
+        <div class="flow-note">
+            Infrastructure implements technical concerns and plugs into Web through dependency injection while keeping Domain independent.
+        </div>
+    </section>
+
+    <section id="rules" class="section-block rules-block">
+        <div class="section-heading">
+            <span>Rules</span>
+            <MudText Typo="Typo.h5" HtmlTag="h2">Architecture Guardrails</MudText>
+        </div>
+        <div class="rule-list">
+            <div><strong>Domain</strong><span>No EF Core, Blazor, ASP.NET Core, logging frameworks, or database code.</span></div>
+            <div><strong>Application</strong><span>No DbContext, SQL queries, EF Core implementation, or HTTP-specific logic.</span></div>
+            <div><strong>Infrastructure</strong><span>No UI logic, business rule definitions, or feature decisions.</span></div>
+            <div><strong>Web</strong><span>No direct DbContext usage, SQL queries, or business logic inside Razor components.</span></div>
+        </div>
+    </section>
+
+    <section class="section-block stack-block">
+        <div class="section-heading">
+            <span>Stack</span>
+            <MudText Typo="Typo.h5" HtmlTag="h2">Technology Stack</MudText>
+        </div>
+        <div class="tool-list">
+            <span>.NET 8</span>
+            <span>Blazor Server</span>
+            <span>MudBlazor</span>
+            <span>Entity Framework Core</span>
+            <span>ASP.NET Identity</span>
+            <span>JWT</span>
+            <span>Serilog</span>
+            <span>Swagger</span>
+        </div>
+    </section>
+</MudContainer>
+
+<style>
+    :root {
+        --ca-blue: #0046ad;
+        --ca-blue-dark: #002d72;
+        --ca-blue-soft: #e9f1ff;
+        --ca-line: #cdd8eb;
+        --ca-text: #172033;
+        --ca-muted: #536174;
+    }
+
+    .clean-home {
+        background: #ffffff;
+        color: var(--ca-text);
+    }
+
+    .clean-hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.1fr) minmax(320px, .9fr);
+        min-height: 400px;
+        background: linear-gradient(110deg, var(--ca-blue-dark) 0%, var(--ca-blue) 64%, #ffffff 64.2%);
+        border-bottom: 1px solid var(--ca-line);
+    }
+
+    .hero-copy {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 14px;
+        padding: clamp(28px, 5vw, 56px);
+        color: #ffffff;
+    }
+
+    .eyebrow,
+    .section-heading span {
+        font-size: .75rem;
+        font-weight: 900;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+    }
+
+    .eyebrow {
+        color: #d7e7ff;
+    }
+
+    .hero-title {
+        color: #ffffff;
+        font-weight: 900;
+        line-height: 1.05;
+        max-width: 760px;
+    }
+
+    .hero-subtitle {
+        color: #e6f0ff;
+        line-height: 1.55;
+        max-width: 660px;
+    }
+
+    .hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 4px;
+    }
+
+    .primary-action {
+        background: var(--ca-blue) !important;
+        border-radius: 2px !important;
+        box-shadow: none !important;
+        color: #ffffff !important;
+        font-weight: 900 !important;
+    }
+
+    .hero-actions .primary-action {
+        background: #ffffff !important;
+        color: var(--ca-blue-dark) !important;
+    }
+
+    .secondary-action {
+        border-color: #ffffff !important;
+        border-radius: 2px !important;
+        color: #ffffff !important;
+        font-weight: 900 !important;
+    }
+
+    .hero-panel {
+        display: flex;
+        align-items: center;
+        padding: clamp(22px, 4vw, 44px);
+    }
+
+    .stack-map {
+        display: grid;
+        gap: 10px;
+        width: min(100%, 460px);
+    }
+
+    .stack-map div,
+    .overview-grid article,
+    .layer-card,
+    .rule-list div {
+        background: rgba(255,255,255,.96);
+        border: 1px solid var(--ca-line);
+        border-radius: 2px;
+    }
+
+    .stack-map div {
+        border-left: 5px solid var(--ca-blue);
+        padding: 12px 14px;
+    }
+
+    .stack-map strong,
+    .rule-list strong {
+        color: var(--ca-blue-dark);
+        display: block;
+        font-weight: 900;
+    }
+
+    .stack-map span,
+    .rule-list span {
+        color: var(--ca-muted);
+        font-size: .9rem;
+    }
+
+    .section-block {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 30px clamp(16px, 3vw, 32px);
+    }
+
+    .overview-block,
+    .dependency-block {
+        background: #f7faff;
+        max-width: none;
+        padding-left: max(clamp(16px, 3vw, 32px), calc((100vw - 1180px) / 2 + 24px));
+        padding-right: max(clamp(16px, 3vw, 32px), calc((100vw - 1180px) / 2 + 24px));
+    }
+
+    .section-heading {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 16px;
+        border-bottom: 2px solid var(--ca-blue);
+        padding-bottom: 8px;
+        margin-bottom: 16px;
+    }
+
+    .section-heading span {
+        color: var(--ca-blue);
+    }
+
+    .section-heading h2 {
+        color: var(--ca-blue-dark);
+        font-weight: 900;
+        margin: 0;
+    }
+
+    .overview-grid,
+    .layer-grid {
+        display: grid;
+        gap: 14px;
+    }
+
+    .overview-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .layer-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .overview-grid article,
+    .layer-card {
+        padding: 16px;
+        border-top: 4px solid var(--ca-blue);
+    }
+
+    .overview-grid .mud-icon-root {
+        color: var(--ca-blue);
+        margin-bottom: 8px;
+    }
+
+    .overview-grid h3,
+    .layer-card h3 {
+        color: var(--ca-blue-dark);
+        font-size: 1rem;
+        font-weight: 900;
+        line-height: 1.25;
+        margin: 0 0 6px;
+    }
+
+    .overview-grid p,
+    .layer-card p,
+    .flow-note {
+        color: var(--ca-muted);
+        font-size: .92rem;
+        line-height: 1.45;
+        margin: 0;
+    }
+
+    .layer-number {
+        color: var(--ca-blue);
+        font-size: .78rem;
+        font-weight: 900;
+        margin-bottom: 10px;
+    }
+
+    .flow-grid {
+        align-items: center;
+        display: grid;
+        gap: 10px;
+        grid-template-columns: 1fr auto 1fr auto 1fr;
+        margin-bottom: 12px;
+    }
+
+    .flow-grid .mud-icon-root {
+        color: var(--ca-blue);
+    }
+
+    .flow-item {
+        background: #ffffff;
+        border: 1px solid var(--ca-line);
+        border-left: 5px solid var(--ca-blue);
+        color: var(--ca-blue-dark);
+        font-weight: 900;
+        padding: 12px 14px;
+        text-align: center;
+    }
+
+    .flow-note {
+        border-left: 5px solid var(--ca-blue);
+        background: #ffffff;
+        padding: 12px 14px;
+    }
+
+    .rule-list {
+        display: grid;
+        gap: 10px;
+    }
+
+    .rule-list div {
+        display: grid;
+        gap: 4px;
+        grid-template-columns: 160px 1fr;
+        padding: 12px 14px;
+    }
+
+    .tool-list span {
+        display: inline-block;
+        font-size: .7rem;
+        font-weight: 900;
+        letter-spacing: .04em;
+        line-height: 1;
+        padding: 6px 8px;
+        text-transform: uppercase;
+        width: fit-content;
+    }
+
+    .tool-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .tool-list span {
+        background: var(--ca-blue-soft);
+        border-left: 4px solid var(--ca-blue);
+        color: var(--ca-blue-dark);
+    }
+
+    @@media (max-width: 960px) {
+        .clean-hero,
+        .overview-grid,
+        .layer-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .clean-hero {
+            background: var(--ca-blue);
+        }
+
+        .hero-panel {
+            background: #f7faff;
+        }
+
+        .flow-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .flow-grid .mud-icon-root {
+            display: none;
+        }
+    }
+
+    @@media (max-width: 600px) {
+        .hero-title {
+            font-size: 2rem;
+        }
+
+        .hero-actions {
+            flex-direction: column;
+        }
+
+        .hero-actions .mud-button-root {
+            width: 100%;
+        }
+
+        .section-heading {
+            align-items: start;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .rule-list div {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>

@@ -16,7 +16,7 @@ namespace AselDevBlazor.Infrastructure.Data
 
         // Define your DbSets here
         // public DbSet<YourEntity> YourEntities { get; set; }
-        public DbSet<EmpAttendanceData> tblempattendancedata { get; set; }
+       
         public DbSet<TemperatureData> tbltemperaturedata { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

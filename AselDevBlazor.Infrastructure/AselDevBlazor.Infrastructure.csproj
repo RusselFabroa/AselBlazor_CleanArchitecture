@@ -7,6 +7,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="AI\**" />
+    <EmbeddedResource Remove="AI\**" />
+    <None Remove="AI\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.25" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.25" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.25">
@@ -26,10 +32,6 @@
   <ItemGroup>
     <ProjectReference Include="..\AselDevBlazor.Application\AselDevBlazor.Application.csproj" />
     <ProjectReference Include="..\AselDevBlazor.Domain\AselDevBlazor.Domain.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="AI\" />
   </ItemGroup>
 
 </Project>
