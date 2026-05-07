@@ -409,6 +409,40 @@ git remote add origin https://github.com/your-company/your-new-app.git
 git push -u origin main
 ```
 
+## Renaming the Template After Clone
+
+Use the included rename script from the cloned project root:
+
+```powershell
+.\Scripts\Rename-Template.ps1 -NewName CompanyDxPortal
+```
+
+Preview the changes first:
+
+```powershell
+.\Scripts\Rename-Template.ps1 -NewName CompanyDxPortal -WhatIf
+```
+
+What it does:
+
+- Replaces `AselDevBlazor` with the new name in source/config/docs files.
+- Renames solution, project files, folders, and any file names that include the old name.
+- Skips `.git`, `.vs`, `bin`, and `obj` while editing references.
+- Removes `bin` and `obj` folders so the next build starts clean.
+
+Then run:
+
+```powershell
+dotnet restore CompanyDxPortal.slnx
+dotnet build CompanyDxPortal.slnx
+```
+
+If you want to keep `bin` and `obj` folders:
+
+```powershell
+.\Scripts\Rename-Template.ps1 -NewName CompanyDxPortal -SkipClean
+```
+
 ## Recommended Company Architecture
 
 Use this template as:
