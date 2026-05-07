@@ -3,7 +3,7 @@
    ╚══════════════════════════════════════════════════════════════╝ *@
 
 @page "/register"
-@attribute [AllowAnonymous]
+@attribute [Authorize(Roles = "Admin")]
 @layout EmptyLayout
 @using AselDevBlazor.Application.Common.Interfaces.AuthServices
 
@@ -85,6 +85,16 @@
                                   Adornment="Adornment.Start"
                                   AdornmentIcon="@Icons.Material.Outlined.Person"
                                   Class="reg-field reg-field--full"
+                                  Disabled="@_loading" />
+
+                    <MudTextField @bind-Value="_model.EmployeeId"
+                                  Label="Employee ID"
+                                  Variant="Variant.Outlined"
+                                  Required="true"
+                                  RequiredError="Employee ID is required"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Outlined.Badge"
+                                  Class="reg-field"
                                   Disabled="@_loading" />
 
                     <MudTextField @bind-Value="_model.Email"
@@ -531,7 +541,7 @@
 
     private async Task HandleRegisterAsync()
     {
-        await _form.Validate();
+        await _form.ValidateAsync();
         if (!_isValid) return;
 
         _loading = true;
@@ -569,7 +579,7 @@
 
     private List<StepItem> _steps = new()
     {
-        new("Fill in your details",  "Enter your name, email and department"),
+        new("Fill in your details",  "Enter employee ID, name, email and department"),
         new("Choose your role",      "Select the appropriate access level"),
         new("Set a secure password", "Min 8 chars with uppercase and number"),
     };

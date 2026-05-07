@@ -3,6 +3,7 @@ using AselDevBlazor.Application.Common.Interfaces.AuthServices;
 using AselDevBlazor.Application.Features.Auth;
 using AselDevBlazor.Application.Features.Auth.DTOs;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
@@ -43,30 +44,32 @@ namespace AselDevBlazor.Infrastructure.Auth
         {
             try
             {
-                _logger.LogInformation("Login attempt: {Email}", dto.Email);
+                var loginId = dto.UsernameOrEmployeeId?.Trim() ?? string.Empty;
+                _logger.LogInformation("Login attempt: {LoginId}", loginId);
 
-                var user = await _userManager.FindByEmailAsync(dto.Email);
+                var user = await FindByUsernameOrEmployeeIdAsync(loginId);
                 if (user is null || !user.IsActive)
                 {
-                    _logger.LogWarning("Login failed — not found: {Email}", dto.Email);
-                    return new ServiceResponse<AuthResponseDto>("Invalid email or password.", 401);
+                    _logger.LogWarning("Login failed: username/employee id not found or inactive: {LoginId}", loginId);
+                    return new ServiceResponse<AuthResponseDto>("Invalid username/employee ID or password.", 401);
                 }
 
                 var isValid = await _userManager.CheckPasswordAsync(user, dto.Password);
                 if (!isValid)
                 {
-                    _logger.LogWarning("Login failed — wrong password: {Email}", dto.Email);
-                    return new ServiceResponse<AuthResponseDto>("Invalid email or password.", 401);
+                    _logger.LogWarning("Login failed: wrong password for {LoginId}", loginId);
+                    return new ServiceResponse<AuthResponseDto>("Invalid username/employee ID or password.", 401);
                 }
 
                 var roles = await _userManager.GetRolesAsync(user);
                 var token = GenerateJwtToken(user, roles);
 
-                _logger.LogInformation("Login successful: {Email}", dto.Email);
+                _logger.LogInformation("Login successful: {LoginId}", loginId);
 
                 return new ServiceResponse<AuthResponseDto>(new AuthResponseDto
                 {
                     Token = token.Token,
+                    EmployeeId = user.EmployeeId,
                     Email = user.Email!,
                     FullName = user.FullName,
                     Role = roles.FirstOrDefault() ?? "User",
@@ -75,22 +78,34 @@ namespace AselDevBlazor.Infrastructure.Auth
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "LoginAsync failed: {Email}", dto.Email);
+                _logger.LogError(ex, "LoginAsync failed: {LoginId}", dto.UsernameOrEmployeeId);
                 return new ServiceResponse<AuthResponseDto>($"Login Error: {ex.Message}", 500);
             }
         }
 
         public async Task<ServiceResponse<AuthResponseDto>> RegisterAsync(RegisterDto dto)
+            => await CreateUserAsync(dto);
+
+        public async Task<ServiceResponse<AuthResponseDto>> CreateUserAsync(RegisterDto dto)
         {
             try
             {
+                var employeeId = dto.EmployeeId?.Trim() ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(employeeId))
+                    return new ServiceResponse<AuthResponseDto>("Employee ID is required.", 400);
+
+                var existingUserName = await _userManager.FindByNameAsync(employeeId);
+                if (existingUserName is not null)
+                    return new ServiceResponse<AuthResponseDto>("Employee ID already registered.", 400);
+
                 var exists = await _userManager.FindByEmailAsync(dto.Email);
                 if (exists is not null)
                     return new ServiceResponse<AuthResponseDto>("Email already registered.", 400);
 
                 var user = new ApplicationUser
                 {
-                    UserName = dto.Email,
+                    UserName = employeeId,
+                    EmployeeId = employeeId,
                     Email = dto.Email,
                     FullName = dto.FullName,
                     Department = dto.Department,
@@ -121,15 +136,16 @@ namespace AselDevBlazor.Infrastructure.Auth
                 return new ServiceResponse<AuthResponseDto>(new AuthResponseDto
                 {
                     Token = token.Token,
+                    EmployeeId = user.EmployeeId,
                     Email = user.Email!,
                     FullName = user.FullName,
                     Role = role,
                     ExpiresAt = token.ExpiresAt
-                }, "Registration successful", 201);
+                }, "User created successfully", 201);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "RegisterAsync failed: {Email}", dto.Email);
+                _logger.LogError(ex, "CreateUserAsync failed: {Email}", dto.Email);
                 return new ServiceResponse<AuthResponseDto>($"Error: {ex.Message}", 500);
             }
         }
@@ -166,20 +182,32 @@ namespace AselDevBlazor.Infrastructure.Auth
             try
             {
                 if (await _roleManager.RoleExistsAsync(roleName))
-                    return ServiceResponse.Error($"Role '{roleName}' already exists.");
+                    return ServiceResponse.Error($"Role '{roleName}' already exists.", 409);
 
                 await _roleManager.CreateAsync(new IdentityRole(roleName));
                 _logger.LogInformation("Role created: {Role}", roleName);
-                return ServiceResponse.Error($"Role '{roleName}' created.");
+                return ServiceResponse.Ok($"Role '{roleName}' created.");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "CreateRoleAsync failed");
-                return ServiceResponse.Error($"Error: {ex.Message}");
+                return ServiceResponse.ServerError($"Error: {ex.Message}");
             }
         }
 
         // ── JWT Generator ──
+        private async Task<ApplicationUser?> FindByUsernameOrEmployeeIdAsync(string loginId)
+        {
+            if (string.IsNullOrWhiteSpace(loginId))
+                return null;
+
+            var user = await _userManager.FindByNameAsync(loginId);
+            if (user is not null)
+                return user;
+
+            return await _userManager.Users.FirstOrDefaultAsync(u => u.EmployeeId == loginId);
+        }
+
         private (string Token, DateTime ExpiresAt) GenerateJwtToken(
             ApplicationUser user, IEnumerable<string> roles)
         {
@@ -190,9 +218,13 @@ namespace AselDevBlazor.Infrastructure.Auth
 
             var claims = new List<Claim>
         {
+            new Claim(JwtRegisteredClaimNames.Sub, user.Id),
             new Claim(ClaimTypes.NameIdentifier, user.Id),
             new Claim(ClaimTypes.Email,          user.Email!),
             new Claim(ClaimTypes.Name,           user.FullName),
+            new Claim("preferred_username",      user.UserName ?? user.EmployeeId),
+            new Claim("employee_id",             user.EmployeeId),
+            new Claim("department",              user.Department),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
         };
 

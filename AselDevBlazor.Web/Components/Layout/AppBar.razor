@@ -7,17 +7,15 @@
 <MudAppBar Elevation="1" Dense="true">
 
     <!-- LEFT: Menu (visible on small screens) -->
-    @* <MudIconButton Icon="@Icons.Material.Outlined.Menu"
+    <MudIconButton Icon="@Icons.Material.Outlined.Menu"
                    Edge="Edge.Start"
                    OnClick="ToggleDrawer"
-                   AriaLabel="Toggle navigation" /> *@
+                   aria-label="Toggle navigation" />
 
     <!-- LOGO + BRAND (compact) -->
     <MudStack Row AlignItems="AlignItems.Center" Spacing="1" Class="ml-2">
-       
-            <MudImage Height="25" Src="images/tdklogo.png" />
-       
-        <MudText Typo="Typo.subtitle1" Class="d-none d-sm-inline">TPC DX</MudText>
+        <MudIcon Icon="@Icons.Material.Outlined.AutoAwesomeMosaic" Color="Color.Primary" />
+        <MudText Typo="Typo.subtitle1" Class="d-none d-sm-inline">AselDev Blazor</MudText>
     </MudStack>
 
     <MudSpacer />
@@ -25,40 +23,32 @@
     <!-- RIGHT SIDE -->
     <MudStack Row AlignItems="AlignItems.Center" Spacing="1">
 
-        <!-- Notifications -->
-        <MudIconButton Icon="@Icons.Material.Outlined.NotificationsNone" />
-
-        <!-- Settings -->
-        <MudIconButton Icon="@Icons.Material.Outlined.Settings" />
-
-        <!-- USER DROPDOWN -->
-        <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+        <MudMenu AnchorOrigin="Origin.BottomRight"
+                 TransformOrigin="Origin.TopRight"
+                 Class="profile-menu">
 
             <ActivatorContent>
-                <MudIconButton Icon="@Icons.Material.Outlined.AccountCircle" />
+                <MudIconButton Icon="@Icons.Material.Outlined.AccountCircle" OnClick="@context.ToggleAsync"
+                               Color="@(_isAuthenticated ? Color.Primary : Color.Default)"
+                               title="@(_isAuthenticated ? _userName : "Sign in")"
+                               aria-label="Open profile menu" />
             </ActivatorContent>
 
             <ChildContent>
-
-                <!-- USER INFO -->
-                <MudMenuItem>
-                    <MudStack Spacing="0">
-                        <MudText Typo="Typo.body2">@_userName</MudText>
-                        <MudText Typo="Typo.caption">@_userEmail</MudText>
-                    </MudStack>
-                </MudMenuItem>
-
-                <MudDivider />
-
                 @if (_isAuthenticated)
                 {
-                    <MudMenuItem Icon="@Icons.Material.Outlined.Person">
-                        Profile
-                    </MudMenuItem>
-
-                    <MudMenuItem Icon="@Icons.Material.Outlined.Settings">
-                        Account Settings
-                    </MudMenuItem>
+                    <div class="profile-menu-header">
+                        <MudAvatar Size="Size.Medium" Color="Color.Primary">
+                            @_userInitials
+                        </MudAvatar>
+                        <MudStack Spacing="0" Class="profile-user-text">
+                            <MudText Typo="Typo.body2">@_userName</MudText>
+                            @if (!string.IsNullOrWhiteSpace(_userEmail))
+                            {
+                                <MudText Typo="Typo.caption">@_userEmail</MudText>
+                            }
+                        </MudStack>
+                    </div>
 
                     <MudDivider />
 
@@ -83,6 +73,31 @@
 
 </MudAppBar>
 
+<style>
+    .profile-menu-header {
+        align-items: center;
+        display: flex;
+        gap: 12px;
+        min-width: 230px;
+        padding: 12px 16px;
+    }
+
+    .profile-user-text {
+        min-width: 0;
+    }
+
+    .profile-user-text .mud-typography-body2,
+    .profile-user-text .mud-typography-caption {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .profile-user-text .mud-typography-body2 {
+        font-weight: 600;
+    }
+</style>
+
 @code {
 
     [Parameter] public EventCallback OnMenuToggle { get; set; }
@@ -90,6 +105,7 @@
     private bool _isAuthenticated;
     private string _userName = "Guest";
     private string _userEmail = "";
+    private string _userInitials = "G";
     protected override async Task OnInitializedAsync()
     {
         var state = await AuthStateProvider.GetAuthenticationStateAsync();
@@ -105,6 +121,8 @@
                 user.FindFirst(ClaimTypes.Email)?.Value ??
                 user.FindFirst("email")?.Value ??
                 "";
+
+            _userInitials = BuildInitials(_userName);
         }
     }
 
@@ -120,4 +138,16 @@
 
     private async Task ToggleDrawer()
         => await OnMenuToggle.InvokeAsync();
+
+    private static string BuildInitials(string name)
+    {
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (parts.Length == 0)
+            return "U";
+
+        if (parts.Length == 1)
+            return parts[0][0].ToString().ToUpperInvariant();
+
+        return $"{parts[0][0]}{parts[^1][0]}".ToUpperInvariant();
+    }
 }

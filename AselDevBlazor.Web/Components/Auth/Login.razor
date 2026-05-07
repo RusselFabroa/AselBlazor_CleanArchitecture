@@ -6,12 +6,14 @@
 @using AselDevBlazor.Application.Common.Interfaces.AuthServices
 @using AselDevBlazor.Application.Features.Auth.DTOs
 @using AselDevBlazor.Infrastructure.Auth
+@using AselDevBlazor.Web.Services
 @using Microsoft.AspNetCore.Authorization
 
 @inject IAuthService AuthService
 @inject NavigationManager NavManager
 @inject ISnackbar Snackbar
 @inject JwtAuthStateProvider AuthStateProvider
+@inject SsoNavigationService SsoNavigation
 
 <PageTitle>Sign In</PageTitle>
 
@@ -26,75 +28,75 @@
 
     <MudPaper Class="pa-6 mt-4" Elevation="1">
 
-        <!-- Header -->
-        <MudStack Spacing="1" Class="mb-4">
-            <MudText Typo="Typo.h5">Sign in</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">
-                Enter your credentials to continue
-            </MudText>
-        </MudStack>
-
-        <!-- Form -->
-        <MudForm @ref="_form" @bind-IsValid="_isValid">
-
-            <MudStack Spacing="2">
-
-                <MudTextField @bind-Value="_model.Email"
-                              Label="Email"
-                              Variant="Variant.Outlined"
-                              InputType="InputType.Email"
-                              Required="true"
-                              FullWidth="true" />
-
-                <MudTextField @bind-Value="_model.Password"
-                              Label="Password"
-                              Variant="Variant.Outlined"
-                              InputType="@_passwordInputType"
-                              Required="true"
-                              Adornment="Adornment.End"
-                              AdornmentIcon="@_passwordIcon"
-                              OnAdornmentClick="TogglePassword"
-                              FullWidth="true" />
-
-                @if (_errorMessage is not null)
-                {
-                    <MudAlert Severity="Severity.Error" Dense="true">
-                        @_errorMessage
-                    </MudAlert>
-                }
-
-                <MudButton Variant="Variant.Filled"
-                           Color="Color.Primary"
-                           FullWidth="true"
-                           OnClick="HandleLoginAsync"
-                           Disabled="@_loading">
-
-                    @if (_loading)
-                    {
-                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
-                        <MudText>Signing in...</MudText>
-                    }
-                    else
-                    {
-                        <MudText>Sign In</MudText>
-                      
-                    }                  
-                </MudButton>
-
+        @if (_checkingAuth)
+        {
+            <MudStack AlignItems="AlignItems.Center" Justify="Justify.Center" Spacing="2" Class="py-8">
+                <MudProgressCircular Indeterminate="true" Size="Size.Medium" Color="Color.Primary" />
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Checking your session...</MudText>
+            </MudStack>
+        }
+        else
+        {
+            <!-- Header -->
+            <MudStack Spacing="1" Class="mb-4">
+                <MudText Typo="Typo.h5">Sign in</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Enter your credentials to continue
+                </MudText>
             </MudStack>
 
-        </MudForm>
+            <!-- Form -->
+            <MudForm @ref="_form" @bind-IsValid="_isValid">
 
-        <!-- Footer -->
-        <MudStack Direction="Row" Justify="Justify.Center" Class="mt-4">
-            <MudText Typo="Typo.body2">
-                Don't have an account?
-            </MudText>
+                <MudStack Spacing="2">
 
-            <MudLink Href="/register" Class="ml-1">
-                Create account
-            </MudLink>
-        </MudStack>
+                    <MudTextField @bind-Value="_model.UsernameOrEmployeeId"
+                                  Label="Username / Employee ID"
+                                  Variant="Variant.Outlined"
+                                  InputType="InputType.Text"
+                                  Required="true"
+                                  RequiredError="Username or employee ID is required"
+                                  FullWidth="true" />
+
+                    <MudTextField @bind-Value="_model.Password"
+                                  Label="Password"
+                                  Variant="Variant.Outlined"
+                                  InputType="@_passwordInputType"
+                                  Required="true"
+                                  Adornment="Adornment.End"
+                                  AdornmentIcon="@_passwordIcon"
+                                  OnAdornmentClick="TogglePassword"
+                                  FullWidth="true" />
+
+                    @if (_errorMessage is not null)
+                    {
+                        <MudAlert Severity="Severity.Error" Dense="true">
+                            @_errorMessage
+                        </MudAlert>
+                    }
+
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               FullWidth="true"
+                               OnClick="HandleLoginAsync"
+                               Disabled="@_loading">
+
+                        @if (_loading)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                            <MudText>Signing in...</MudText>
+                        }
+                        else
+                        {
+                            <MudText>Sign In</MudText>
+                      
+                        }
+                    </MudButton>
+
+                </MudStack>
+
+            </MudForm>
+        }
 
     </MudPaper>
 
@@ -113,10 +115,14 @@
     [SupplyParameterFromQuery]
     private string? ReturnUrl { get; set; }
 
+    [SupplyParameterFromQuery(Name = "urlReturn")]
+    private string? UrlReturn { get; set; }
+
     private LoginDto _model = new();
     private MudForm _form = default!;
     private bool _isValid = false;
     private bool _loading = false;
+    private bool _checkingAuth = true;
     private string? _errorMessage;
 
     private bool _showPassword = false;
@@ -127,9 +133,34 @@
 
     private void TogglePassword() => _showPassword = !_showPassword;
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        var state = await AuthStateProvider.GetAuthenticationStateAsync();
+        if (state.User.Identity?.IsAuthenticated == true)
+        {
+            NavManager.NavigateTo(GetSafeReturnUrl(), true);
+            return;
+        }
+
+        if (SsoNavigation.Settings.IsClient)
+        {
+            NavManager.NavigateTo(SsoNavigation.BuildLoginUrl(GetSafeReturnUrl()), true);
+            return;
+        }
+
+        _checkingAuth = false;
+        StateHasChanged();
+    }
+
     private async Task HandleLoginAsync()
     {
-        await _form.Validate();
+        if (_checkingAuth)
+            return;
+
+        await _form.ValidateAsync();
         if (!_isValid) return;
 
         _loading = true;
@@ -145,11 +176,7 @@
 
                 Snackbar.Add($"Welcome back, {response.Data.FullName}!", Severity.Success);
 
-                var redirect = string.IsNullOrWhiteSpace(ReturnUrl)
-                    ? "/"
-                    : ReturnUrl;
-
-                NavManager.NavigateTo(redirect, true);
+                NavManager.NavigateTo(GetSafeReturnUrl(), true);
             }
             else
             {
@@ -164,5 +191,29 @@
         {
             _loading = false;
         }
+    }
+
+    private string GetSafeReturnUrl()
+    {
+        var target = !string.IsNullOrWhiteSpace(UrlReturn)
+            ? UrlReturn
+            : ReturnUrl;
+
+        if (string.IsNullOrWhiteSpace(target))
+            return "/";
+
+        if (target.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+            target.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ||
+            target.StartsWith("//", StringComparison.Ordinal))
+        {
+            return "/";
+        }
+
+        if (target.StartsWith("/login", StringComparison.OrdinalIgnoreCase))
+            return "/";
+
+        return target.StartsWith("/", StringComparison.Ordinal)
+            ? target
+            : $"/{target}";
     }
 }

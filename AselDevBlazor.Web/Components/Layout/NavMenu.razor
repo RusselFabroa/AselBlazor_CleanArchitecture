@@ -1,124 +1,73 @@
-﻿@inject NavigationManager NavManager
+@inject NavigationManager NavManager
+@inject AselDevBlazor.Web.Services.SsoNavigationService SsoNavigation
 
-<MudNavMenu Dense Class="nav-menu pt-5 shadow" Margin="Margin.Dense" Rounded>
+<MudNavMenu Dense Class="nav-menu" Margin="Margin.Dense">
 
-    <!-- Overview -->
-    <MudText Typo="Typo.caption" Class="nav-section">Overview</MudText>
+    <div class="nav-intro">
+        <MudText Typo="Typo.subtitle2">AselDev Blazor</MudText>
+        <MudText Typo="Typo.caption">Clean Architecture starter</MudText>
+    </div>
 
-    <MudNavLink Href="/" Icon="@Icons.Material.Outlined.Dashboard" Match="NavLinkMatch.All">
-        <MudText Typo="Typo.body1">Dashboard</MudText>
+    <MudNavLink Href="/" Icon="@Icons.Material.Outlined.Home" Match="NavLinkMatch.All">
+        <MudText Typo="Typo.body1">Overview</MudText>
     </MudNavLink>
 
-    <MudNavLink Href="/temperature-monitor" Icon="@Icons.Material.Outlined.Thermostat">
-        <MudText Typo="Typo.body1">Temperature Monitoring</MudText>
-    </MudNavLink>
+    <MudText Typo="Typo.caption" Class="nav-section">Administration</MudText>
 
-    <MudNavLink Href="/trial-data" Icon="@Icons.Material.Outlined.Dataset">
-        <MudText Typo="Typo.body1">Data Management</MudText>
-    </MudNavLink>
-
-    <MudNavLink Href="/sample-page" Icon="@Icons.Material.Outlined.Security">
-        <MudText Typo="Typo.body1">Access Control</MudText>
-    </MudNavLink>
-
-    <MudNavLink Href="/reports" Icon="@Icons.Material.Outlined.Assessment">
-        <MudText Typo="Typo.body1">Reports</MudText>
-    </MudNavLink>
-
-
-    <!-- Management -->
-    <MudText Typo="Typo.caption" Class="nav-section mt-4">Management</MudText>
-
-    <MudNavGroup Class="mud-nav-group-link" Title="Users & Roles" Icon="@Icons.Material.Outlined.Group" Expanded="_usersExpanded">
-
-        <MudNavLink Href="/users" Icon="@Icons.Material.Outlined.People">
+    @if (SsoNavigation.Settings.IsIdentityProvider)
+    {
+        <MudNavLink Href="/users" Icon="@Icons.Material.Outlined.Group">
             <MudText Typo="Typo.body1">Users</MudText>
         </MudNavLink>
+    }
 
-        <MudNavLink Href="/users/roles" Icon="@Icons.Material.Outlined.AdminPanelSettings">
-            <MudText Typo="Typo.body1">Roles & Permissions</MudText>
-        </MudNavLink>
-
-        <MudNavLink Href="/users/invitations" Icon="@Icons.Material.Outlined.MailOutline">
-            <MudText Typo="Typo.body1">Invitations</MudText>
-        </MudNavLink>
-
-    </MudNavGroup>
-
-
-    <MudNavGroup Class="mud-nav-group-link" Title="Content Management" Icon="@Icons.Material.Outlined.FolderOpen" Expanded="_contentExpanded">
-
-        <MudNavLink Href="/content/pages" Icon="@Icons.Material.Outlined.Description">
-            <MudText Typo="Typo.body1">Pages</MudText>
-        </MudNavLink>
-
-        <MudNavLink Href="/content/media" Icon="@Icons.Material.Outlined.PermMedia">
-            <MudText Typo="Typo.body1">Media Library</MudText>
-        </MudNavLink>
-
-    </MudNavGroup>
-
-    <MudNavLink Href="/projects" Icon="@Icons.Material.Outlined.AccountTree">
-        <MudText Typo="Typo.body1">Projects</MudText>
-    </MudNavLink>
-
-    <MudNavLink Href="/tasks" Icon="@Icons.Material.Outlined.TaskAlt">
-        <MudText Typo="Typo.body1">Tasks</MudText>
-    </MudNavLink>
-
-
-    <!-- System -->
-    <MudText Typo="Typo.caption" Class="nav-section mt-4">System</MudText>
-
-    <MudNavLink Href="/infrastructure" Icon="@Icons.Material.Outlined.Storage">
-        <MudText Typo="Typo.body1">Infrastructure</MudText>
-    </MudNavLink>
-
-    <MudNavLink Href="/logs" Icon="@Icons.Material.Outlined.ReceiptLong">
-        <MudText Typo="Typo.body1">Audit Logs</MudText>
-    </MudNavLink>
-
-    <MudNavLink Href="/integrations" Icon="@Icons.Material.Outlined.Hub">
-        <MudText Typo="Typo.body1">Integrations</MudText>
-    </MudNavLink>
-
-    <MudDivider Class="my-2" />
-
-    <MudNavLink Href="/settings" Icon="@Icons.Material.Outlined.Settings">
-        <MudText Typo="Typo.body1">Settings</MudText>
-    </MudNavLink>
+    <AuthorizeView>
+        <NotAuthorized>
+            <MudNavLink Href="/login" Icon="@Icons.Material.Outlined.Login">
+                <MudText Typo="Typo.body1">Sign In</MudText>
+            </MudNavLink>
+        </NotAuthorized>
+    </AuthorizeView>
 
 </MudNavMenu>
 
 <style>
+    .nav-menu {
+        padding: 10px 8px 14px;
+    }
+
+    .nav-intro {
+        border-bottom: 1px solid var(--mud-palette-divider);
+        margin: 0 8px 10px;
+        padding: 6px 6px 14px;
+    }
+
+    .nav-intro .mud-typography-subtitle2 {
+        color: var(--mud-palette-text-primary);
+        font-weight: 700;
+        line-height: 1.2;
+    }
+
+    .nav-intro .mud-typography-caption {
+        color: var(--mud-palette-text-secondary);
+        display: block;
+        margin-top: 2px;
+    }
+
     .nav-section {
-        padding: 12px 16px 4px;
-        font-size: 0.75rem;
+        padding: 18px 14px 6px;
+        font-size: 0.68rem;
         font-weight: 600;
         color: var(--mud-palette-text-secondary);
         text-transform: uppercase;
-        letter-spacing: 0.05em;
+        letter-spacing: 0;
     }
 
     .nav-menu .mud-nav-link .mud-typography {
         line-height: 1.2;
     }
 
-    /* 🔥 Icon size control */
     .nav-menu .mud-nav-link .mud-nav-link-icon {
-        font-size: .8rem;
-    }
-
-    .nav-menu .mud-nav-group-link .mud-nav-link-icon {
-        font-size: .8rem;
-    }
-
-    .mud-nav-group-link  {
-        font-size: .8rem;
+        font-size: 1rem;
     }
 </style>
-
-@code {
-    private bool _usersExpanded = false;
-    private bool _contentExpanded = false;
-}

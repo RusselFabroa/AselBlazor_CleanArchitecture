@@ -7,33 +7,16 @@
 
 <MudLayout>
 
-    <!-- AppBar (keeps content flow, provides compact actions & menu) -->
     <AppBar OnMenuToggle="DrawerToggle" />
 
-    <!-- Sidebar / Navigation Drawer (responsive) -->
-  @*   <MudDrawer @bind-Open="_drawerOpen"
+   <MudDrawer @bind-Open="_drawerOpen"
                Variant="DrawerVariant.Responsive"
                ClipMode="DrawerClipMode.Always"
                Elevation="1"
-               Class="mud-theme-background">
-
-        <MudDrawerHeader>
-            <MudStack Row AlignItems="AlignItems.Center" Spacing="2">
-                <MudAvatar Size="Size.Medium">AI</MudAvatar>
-                <div>
-                    <MudText Typo="Typo.h6">DX AI Portal</MudText>
-                    <MudText Typo="Typo.caption">Enterprise Dashboard</MudText>
-                </div>
-            </MudStack>
-        </MudDrawerHeader>
-
-        <MudDivider />
-
+               Class="app-drawer">
         <NavMenu />
+    </MudDrawer>
 
-    </MudDrawer> *@
-
-    <!-- Main Content -->
     <MudMainContent>
 
         <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="main-container">
@@ -44,29 +27,34 @@
 
     </MudMainContent>
 
-    <!-- Optional footer -->
     <footer class="app-footer">
-        <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="py-3 mud-theme-background">
-            <MudText Typo="Typo.caption" Color="Color.Secondary">© @DateTime.Now.Year DX AI Portal · Built with MudBlazor</MudText>
+        <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="py-3">
+            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                © @DateTime.Now.Year AselDev Blazor · Clean Architecture template for Blazor Server, Identity, JWT, EF Core, and MudBlazor
+            </MudText>
         </MudContainer>
     </footer>
 
 </MudLayout>
 
 <style>
-    /* Minimal, purposeful spacing only */
-
     .main-container {
         padding: 24px;
     }
 
-    @@media (max-width: 960px) {
-        .main-container
-
-    {
-        padding: 16px;
+    .app-drawer {
+        border-right: 1px solid var(--mud-palette-divider);
     }
 
+    .app-footer {
+        border-top: 1px solid var(--mud-palette-divider);
+        background: var(--mud-palette-surface);
+    }
+
+    @@media (max-width: 960px) {
+        .main-container {
+            padding: 16px;
+        }
     }
 </style>
 
@@ -133,8 +121,8 @@
         LayoutProperties = new LayoutProperties
         {
             DefaultBorderRadius = "8px",
-            DrawerWidthLeft = "250px",
-            DrawerWidthRight = "250px",
+            DrawerWidthLeft = "232px",
+            DrawerWidthRight = "232px",
             
         }
         

@@ -12,6 +12,8 @@ using System.Reflection;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using System.Net;
+using Microsoft.Extensions.Hosting;
+using AselDevBlazor.Web.Services;
 
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
@@ -39,6 +41,7 @@ try
 
     // ── Controllers ──
     builder.Services.AddControllers();
+    builder.Services.AddScoped<SsoNavigationService>();
 
     // ── Swagger ──
     // ── Swagger ──
@@ -85,6 +88,7 @@ try
 
     // ── Application + Infrastructure ──
     builder.Services.AddApplication();
+    ValidateDefaultConnectionString(builder.Configuration);
     builder.Services.AddInfrastructure(builder.Configuration);
 
 
@@ -174,6 +178,11 @@ try
 }
 catch (Exception ex)
 {
+    if (ex.GetType().Name == "HostAbortedException")
+    {
+        throw;
+    }
+
     Console.ForegroundColor = ConsoleColor.Red;
     Console.WriteLine("========== FATAL ERROR ==========");
     Console.WriteLine(ex.ToString());
@@ -228,11 +237,17 @@ static string BuildSystemErrorPage(
     string environmentName,
     string contentRootPath)
 {
+    var guidance = BuildStartupGuidance(detail);
     var encodedTitle = WebUtility.HtmlEncode(title);
     var encodedDetail = WebUtility.HtmlEncode(detail);
     var encodedEnvironment = WebUtility.HtmlEncode(environmentName);
     var encodedContentRoot = WebUtility.HtmlEncode(contentRootPath);
     var encodedTimestamp = WebUtility.HtmlEncode(DateTimeOffset.Now.ToString("yyyy-MM-dd HH:mm:ss zzz"));
+    var encodedGuidanceTitle = WebUtility.HtmlEncode(guidance.Title);
+    var encodedGuidanceSummary = WebUtility.HtmlEncode(guidance.Summary);
+    var encodedGuidanceSteps = string.Join(
+        "",
+        guidance.Steps.Select(step => $"<li>{WebUtility.HtmlEncode(step)}</li>"));
 
     return $$"""
 <!doctype html>
@@ -353,6 +368,34 @@ static string BuildSystemErrorPage(
             padding: 12px 14px;
         }
 
+        .guidance {
+            background: #f8fbff;
+            border: 1px solid var(--line);
+            border-left: 5px solid var(--blue);
+            padding: 14px 16px;
+        }
+
+        .guidance h2 {
+            color: var(--blue-dark);
+            font-size: 18px;
+            margin: 0 0 6px;
+        }
+
+        .guidance p {
+            color: var(--muted);
+            margin: 0 0 10px;
+        }
+
+        .guidance ol {
+            margin: 0;
+            padding-left: 22px;
+        }
+
+        .guidance li {
+            margin: 6px 0;
+            overflow-wrap: anywhere;
+        }
+
         @media (max-width: 760px) {
             .meta {
                 grid-template-columns: 1fr;
@@ -375,6 +418,13 @@ static string BuildSystemErrorPage(
                 <div class="hint">
                     The normal application could not complete startup. This fallback page is intentionally shown so setup issues are visible on new devices.
                 </div>
+                <div class="guidance">
+                    <h2>{{encodedGuidanceTitle}}</h2>
+                    <p>{{encodedGuidanceSummary}}</p>
+                    <ol>
+                        {{encodedGuidanceSteps}}
+                    </ol>
+                </div>
                 <div class="meta">
                     <div><strong>Environment</strong><span>{{encodedEnvironment}}</span></div>
                     <div><strong>Content Root</strong><span>{{encodedContentRoot}}</span></div>
@@ -388,3 +438,59 @@ static string BuildSystemErrorPage(
 </html>
 """;
 }
+
+static StartupGuidance BuildStartupGuidance(string detail)
+{
+    var isDatabaseError =
+        detail.Contains("DbContext", StringComparison.OrdinalIgnoreCase) ||
+        detail.Contains("database", StringComparison.OrdinalIgnoreCase) ||
+        detail.Contains("migration", StringComparison.OrdinalIgnoreCase) ||
+        detail.Contains("MySql", StringComparison.OrdinalIgnoreCase) ||
+        detail.Contains("Pomelo", StringComparison.OrdinalIgnoreCase) ||
+        detail.Contains("connection string", StringComparison.OrdinalIgnoreCase) ||
+        detail.Contains("Unknown column", StringComparison.OrdinalIgnoreCase) ||
+        detail.Contains("SSL Authentication Error", StringComparison.OrdinalIgnoreCase);
+
+    if (isDatabaseError)
+    {
+        return new StartupGuidance(
+            "Database setup recommendation",
+            "The startup error looks related to database connection, migration, or schema setup.",
+            new[]
+            {
+                "Check DynamicConnectionStrings:DefaultConnection in appsettings.json and confirm server, port, database, user, password, and SslMode are correct.",
+                "Apply pending migrations: dotnet ef database update --project AselDevBlazor.Infrastructure --startup-project AselDevBlazor.Web",
+                "If the app is locking build files, stop the running app, then run: dotnet build AselDevBlazor.Web\\AselDevBlazor.Web.csproj",
+                "If a column is missing, confirm the migration exists and appears in: dotnet ef migrations list --project AselDevBlazor.Infrastructure --startup-project AselDevBlazor.Web",
+                "For local/dev MySQL SSL issues, add SslMode=None to the connection string only when your environment allows it.",
+                "If startup seeding is needed, temporarily set Database:RunStartupTasks to true, start once, then set it back to false if desired."
+            });
+    }
+
+    return new StartupGuidance(
+        "General startup recommendation",
+        "The startup error does not look specifically database-related. Check configuration, services, and environment setup first.",
+        new[]
+        {
+            "Run a clean build: dotnet build AselDevBlazor.Web\\AselDevBlazor.Web.csproj --no-restore",
+            "Check appsettings.json and appsettings.Development.json for missing JwtSettings, Sso, Serilog, or DynamicConnectionStrings sections.",
+            "Confirm required secrets and environment variables are available on this machine.",
+            "Check SystemLogs/aseldevlogs-.log for the full structured exception details.",
+            "If the error started after adding a service, verify it is registered in Program.cs or the correct DependencyInjection class.",
+            "If ports are already in use, close the old app process or change launchSettings.json."
+        });
+}
+
+static void ValidateDefaultConnectionString(IConfiguration configuration)
+{
+    var provider = configuration["DynamicConnectionStrings:DefaultConnection:Provider"];
+    var connectionString = configuration["DynamicConnectionStrings:DefaultConnection:ConnectionString"];
+
+    if (string.IsNullOrWhiteSpace(provider) || string.IsNullOrWhiteSpace(connectionString))
+    {
+        throw new InvalidOperationException(
+            "Default database connection is missing. Configure DynamicConnectionStrings:DefaultConnection:Provider and DynamicConnectionStrings:DefaultConnection:ConnectionString in appsettings.json.");
+    }
+}
+
+record StartupGuidance(string Title, string Summary, IReadOnlyList<string> Steps);

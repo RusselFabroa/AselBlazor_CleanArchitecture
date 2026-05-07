@@ -1,30 +1,29 @@
-﻿using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
-using System;
-using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
 using System.Security.Claims;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace AselDevBlazor.Infrastructure.Auth;
+
 public class JwtAuthStateProvider : AuthenticationStateProvider
 {
     private readonly IJSRuntime _js;
+    private readonly ILogger<JwtAuthStateProvider> _logger;
     private ClaimsPrincipal _anonymous =>
-        new ClaimsPrincipal(new ClaimsIdentity());
+        new(new ClaimsIdentity());
 
-    public JwtAuthStateProvider(IJSRuntime js)
+    public JwtAuthStateProvider(IJSRuntime js, ILogger<JwtAuthStateProvider> logger)
     {
         _js = js;
+        _logger = logger;
     }
 
     public override async Task<AuthenticationState> GetAuthenticationStateAsync()
     {
         try
         {
-            string? token = null;
+            string? token;
 
             try
             {
@@ -34,7 +33,6 @@ public class JwtAuthStateProvider : AuthenticationStateProvider
             }
             catch (InvalidOperationException)
             {
-                // JS not available during prerendering
                 return new AuthenticationState(_anonymous);
             }
             catch (JSException)
@@ -49,7 +47,6 @@ public class JwtAuthStateProvider : AuthenticationStateProvider
             if (string.IsNullOrWhiteSpace(token))
                 return new AuthenticationState(_anonymous);
 
-            // ── Check expiry ──
             var handler = new JwtSecurityTokenHandler();
             var jwt = handler.ReadJwtToken(token);
 
@@ -64,8 +61,9 @@ public class JwtAuthStateProvider : AuthenticationStateProvider
 
             return new AuthenticationState(principal);
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogWarning(ex, "Failed to read authentication state from token storage.");
             return new AuthenticationState(_anonymous);
         }
     }
@@ -86,7 +84,7 @@ public class JwtAuthStateProvider : AuthenticationStateProvider
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"SetTokenAsync error: {ex.Message}");
+            _logger.LogError(ex, "Failed to store authentication token.");
         }
     }
 
@@ -98,8 +96,9 @@ public class JwtAuthStateProvider : AuthenticationStateProvider
                 "aselAuth.getToken",
                 TimeSpan.FromSeconds(3));
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogDebug(ex, "No authentication token is available.");
             return null;
         }
     }
@@ -110,10 +109,12 @@ public class JwtAuthStateProvider : AuthenticationStateProvider
         {
             await _js.InvokeVoidAsync("aselAuth.removeToken");
         }
-        catch { }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Failed to remove authentication token from browser storage.");
+        }
 
         NotifyAuthenticationStateChanged(
             Task.FromResult(new AuthenticationState(_anonymous)));
     }
 }
-

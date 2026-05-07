@@ -13,6 +13,7 @@ namespace AselDevBlazor.Application.Common.Interfaces.AuthServices
         //Task<ServiceResponse<AuthResponseDto>> LoginAsyncOld(LoginDto dto);
 
         Task<ServiceResponse<AuthResponseDto>> RegisterAsync(RegisterDto dto);
+        Task<ServiceResponse<AuthResponseDto>> CreateUserAsync(RegisterDto dto);
         Task<ServiceResponse> AssignRoleAsync(string userId, string role);
         Task<ServiceResponse> CreateRoleAsync(string roleName);
     }

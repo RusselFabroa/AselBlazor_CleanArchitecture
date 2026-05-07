@@ -2,6 +2,7 @@
 using AselDevBlazor.Application.Common.Interfaces.AuthServices;
 using AselDevBlazor.Application.Features.Auth.DTOs;
 using AselDevBlazor.Infrastructure;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -30,9 +31,10 @@ namespace AselDevBlazor.Web.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto dto)
         {
-            var user = await _userManager.FindByEmailAsync(dto.Email);
+            var loginId = dto.UsernameOrEmployeeId?.Trim() ?? string.Empty;
+            var user = await _userManager.FindByNameAsync(loginId);
 
-            Log.Information("Login attempt for email: {Email}", dto.Email);
+            Log.Information("Login attempt for username/employee id: {LoginId}", loginId);
 
 
             if (user == null || !user.IsActive)
@@ -53,9 +55,10 @@ namespace AselDevBlazor.Web.Controllers
         [HttpPost("loginv2")]
         public async Task<IActionResult> Loginv2([FromBody] LoginDto dto)
         {
-            var user = await _userManager.FindByEmailAsync(dto.Email);
+            var loginId = dto.UsernameOrEmployeeId?.Trim() ?? string.Empty;
+            var user = await _userManager.FindByNameAsync(loginId);
 
-            Log.Information("Login attempt for email: {Email}", dto.Email);
+            Log.Information("Login attempt for username/employee id: {LoginId}", loginId);
 
 
             if (user == null || !user.IsActive)
@@ -91,7 +94,7 @@ namespace AselDevBlazor.Web.Controllers
                     return StatusCode(result.StatusCode, result);
                 }
 
-                _logger.LogInformation("LoginVersion2 success: {Email}", dto.Email);
+                _logger.LogInformation("LoginVersion2 success: {LoginId}", dto.UsernameOrEmployeeId);
 
                 return Ok(result);
             }
@@ -106,6 +109,7 @@ namespace AselDevBlazor.Web.Controllers
 
 
         [HttpPost("register")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Register([FromBody] RegisterDto dto)
         {
             var response = await _authService.RegisterAsync(dto);
@@ -113,6 +117,7 @@ namespace AselDevBlazor.Web.Controllers
         }
 
         [HttpPost("assign-role")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> AssignRole(string userId, string role)
         {
             var response = await _authService.AssignRoleAsync(userId, role);
@@ -120,6 +125,7 @@ namespace AselDevBlazor.Web.Controllers
         }
 
         [HttpPost("create-role")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> CreateRole(string roleName)
         {
             var response = await _authService.CreateRoleAsync(roleName);
