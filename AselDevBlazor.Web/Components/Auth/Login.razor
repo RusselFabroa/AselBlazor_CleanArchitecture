@@ -147,7 +147,7 @@
 
         if (SsoNavigation.Settings.IsClient)
         {
-            NavManager.NavigateTo(SsoNavigation.BuildLoginUrl(GetSafeReturnUrl()), true);
+            NavManager.NavigateTo(SsoNavigation.BuildLoginUrl(GetClientReturnUrl()), true);
             return;
         }
 
@@ -196,5 +196,23 @@
     private string GetSafeReturnUrl()
     {
         return SsoNavigation.GetSafeReturnUrl(UrlReturn, ReturnUrl);
+    }
+
+    private string GetClientReturnUrl()
+    {
+        var safeReturnUrl = GetSafeReturnUrl();
+
+        if (Uri.TryCreate(safeReturnUrl, UriKind.Absolute, out var absoluteUri))
+            return absoluteUri.ToString();
+
+        if (safeReturnUrl.StartsWith("/login", StringComparison.OrdinalIgnoreCase))
+            safeReturnUrl = "/";
+
+        var baseUri = NavManager.BaseUri.TrimEnd('/');
+        var localPath = safeReturnUrl.StartsWith("/", StringComparison.Ordinal)
+            ? safeReturnUrl
+            : $"/{safeReturnUrl}";
+
+        return $"{baseUri}{localPath}";
     }
 }

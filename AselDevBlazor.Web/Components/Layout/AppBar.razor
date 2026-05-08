@@ -3,6 +3,7 @@
 @using System.Security.Claims
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Nav
+@inject AselDevBlazor.Web.Services.SsoNavigationService SsoNavigation
 
 <MudAppBar Elevation="1" Dense="true">
 
@@ -60,7 +61,7 @@
                 else
                 {
                     <MudMenuItem Icon="@Icons.Material.Outlined.Login"
-                                 OnClick="@(() => Nav.NavigateTo("/login"))">
+                                 OnClick="GoToLogin">
                         Login
                     </MudMenuItem>
                 }
@@ -134,6 +135,15 @@
         }
 
         Nav.NavigateTo("/", true);
+    }
+
+    private void GoToLogin()
+    {
+        var loginUrl = SsoNavigation.Settings.IsClient
+            ? SsoNavigation.BuildLoginUrl(Nav.Uri)
+            : "/login";
+
+        Nav.NavigateTo(loginUrl, SsoNavigation.Settings.IsClient);
     }
 
     private async Task ToggleDrawer()

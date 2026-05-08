@@ -23,7 +23,7 @@
 
     <AuthorizeView>
         <NotAuthorized>
-            <MudNavLink Href="/login" Icon="@Icons.Material.Outlined.Login">
+            <MudNavLink Href="@SignInUrl" ForceLoad="@SsoNavigation.Settings.IsClient" Icon="@Icons.Material.Outlined.Login">
                 <MudText Typo="Typo.body1">Sign In</MudText>
             </MudNavLink>
         </NotAuthorized>
@@ -71,3 +71,9 @@
         font-size: 1rem;
     }
 </style>
+
+@code {
+    private string SignInUrl => SsoNavigation.Settings.IsClient
+        ? SsoNavigation.BuildLoginUrl(NavManager.Uri)
+        : "/login";
+}
