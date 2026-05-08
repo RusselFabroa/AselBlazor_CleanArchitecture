@@ -20,7 +20,12 @@ Use this for the main Company DX Portal:
   "Mode": "IdentityProvider",
   "Authority": "https://company-portal",
   "LoginUrl": "/login",
-  "UserInfoUrl": "/api/sso/me"
+  "UserInfoUrl": "/api/sso/me",
+  "AllowedReturnHosts": [
+    "company-portal",
+    "leave-app.company-portal",
+    "shuttle-app.company-portal"
+  ]
 }
 ```
 
@@ -31,11 +36,46 @@ Use this for cloned module apps:
   "Mode": "Client",
   "Authority": "https://company-portal",
   "LoginUrl": "https://company-portal/login",
-  "UserInfoUrl": "https://company-portal/api/sso/me"
+  "UserInfoUrl": "https://company-portal/api/sso/me",
+  "AllowedReturnHosts": []
 }
 ```
 
 In `Client` mode, protected pages redirect to the portal login and local user administration is hidden.
+
+## Cross-App Return URLs
+
+For subdomain apps such as:
+
+```text
+https://tpc-dx.cloud
+https://leave-app.tpc-dx.cloud
+https://shuttle-app.tpc-dx.cloud
+```
+
+the IdentityProvider must allow trusted return hosts:
+
+```json
+"Sso": {
+  "Mode": "IdentityProvider",
+  "Authority": "https://tpc-dx.cloud",
+  "LoginUrl": "/login",
+  "UserInfoUrl": "/api/sso/me",
+  "AllowedReturnHosts": [
+    "tpc-dx.cloud",
+    "leave-app.tpc-dx.cloud",
+    "shuttle-app.tpc-dx.cloud"
+  ]
+}
+```
+
+Client apps send their full current URL to the portal login:
+
+```text
+https://tpc-dx.cloud/login?urlReturn=https%3A%2F%2Fleave-app.tpc-dx.cloud%2Fprotected-page
+```
+
+The portal redirects only to hosts listed in `AllowedReturnHosts`. Do not allow every external URL, because that creates an open redirect risk.
 
 ## SSO Endpoints
 

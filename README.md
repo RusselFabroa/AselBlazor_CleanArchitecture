@@ -237,7 +237,12 @@ Use this for the main Company DX Portal.
   "Mode": "IdentityProvider",
   "Authority": "https://company-portal",
   "LoginUrl": "/login",
-  "UserInfoUrl": "/api/sso/me"
+  "UserInfoUrl": "/api/sso/me",
+  "AllowedReturnHosts": [
+    "company-portal",
+    "leave-app.company-portal",
+    "shuttle-app.company-portal"
+  ]
 }
 ```
 
@@ -248,6 +253,7 @@ Responsibilities:
 - Issue JWT tokens.
 - Provide the portal login page.
 - Provide SSO endpoints for other apps.
+- Redirect users back only to trusted app domains.
 - Show the Users admin page.
 
 ### Client Mode
@@ -259,7 +265,8 @@ Use this for cloned module apps.
   "Mode": "Client",
   "Authority": "https://company-portal",
   "LoginUrl": "https://company-portal/login",
-  "UserInfoUrl": "https://company-portal/api/sso/me"
+  "UserInfoUrl": "https://company-portal/api/sso/me",
+  "AllowedReturnHosts": []
 }
 ```
 
@@ -268,6 +275,40 @@ Behavior:
 - Protected pages redirect to the main portal login.
 - Local user administration is hidden.
 - The module app trusts the main portal JWT settings.
+
+### Cross-App Return URLs
+
+When the main portal and modules use subdomains:
+
+```text
+https://tpc-dx.cloud
+https://leave-app.tpc-dx.cloud
+https://shuttle-app.tpc-dx.cloud
+```
+
+configure the main portal allow-list:
+
+```json
+"Sso": {
+  "Mode": "IdentityProvider",
+  "Authority": "https://tpc-dx.cloud",
+  "LoginUrl": "/login",
+  "UserInfoUrl": "/api/sso/me",
+  "AllowedReturnHosts": [
+    "tpc-dx.cloud",
+    "leave-app.tpc-dx.cloud",
+    "shuttle-app.tpc-dx.cloud"
+  ]
+}
+```
+
+Then client apps can redirect to:
+
+```text
+https://tpc-dx.cloud/login?urlReturn=https%3A%2F%2Fleave-app.tpc-dx.cloud%2Fsome-page
+```
+
+The portal will return only to hosts listed in `AllowedReturnHosts`. Never allow all external URLs.
 
 ## SSO Endpoints
 
@@ -429,6 +470,11 @@ What it does:
 - Renames solution, project files, folders, and any file names that include the old name.
 - Skips `.git`, `.vs`, `bin`, and `obj` while editing references.
 - Removes `bin` and `obj` folders so the next build starts clean.
+
+Before running it, close Visual Studio, VS Code, running `dotnet` apps, and any
+file preview windows for the cloned folder. If a file is locked, the script
+pauses before folder renames; close the locking app and run the same command
+again.
 
 Then run:
 

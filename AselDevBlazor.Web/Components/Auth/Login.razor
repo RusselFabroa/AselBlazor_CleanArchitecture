@@ -195,25 +195,6 @@
 
     private string GetSafeReturnUrl()
     {
-        var target = !string.IsNullOrWhiteSpace(UrlReturn)
-            ? UrlReturn
-            : ReturnUrl;
-
-        if (string.IsNullOrWhiteSpace(target))
-            return "/";
-
-        if (target.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
-            target.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ||
-            target.StartsWith("//", StringComparison.Ordinal))
-        {
-            return "/";
-        }
-
-        if (target.StartsWith("/login", StringComparison.OrdinalIgnoreCase))
-            return "/";
-
-        return target.StartsWith("/", StringComparison.Ordinal)
-            ? target
-            : $"/{target}";
+        return SsoNavigation.GetSafeReturnUrl(UrlReturn, ReturnUrl);
     }
 }

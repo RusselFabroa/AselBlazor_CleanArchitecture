@@ -99,6 +99,7 @@ $textExtensions = @(
 )
 
 Write-Host "Updating text references..."
+$failedFiles = New-Object System.Collections.Generic.List[string]
 $files = Get-ChildItem -LiteralPath $root -Recurse -File |
     Where-Object {
         $pathParts = $_.FullName.Substring($root.Length).TrimStart('\') -split '[\\/]'
@@ -107,15 +108,33 @@ $files = Get-ChildItem -LiteralPath $root -Recurse -File |
     }
 
 foreach ($file in $files) {
-    $content = Get-Content -LiteralPath $file.FullName -Raw
+    try {
+        $content = [System.IO.File]::ReadAllText($file.FullName)
 
-    if ($content.Contains($OldName)) {
-        $updated = $content.Replace($OldName, $NewName)
-        if ($PSCmdlet.ShouldProcess($file.FullName, "Replace $OldName with $NewName")) {
-            Set-Content -LiteralPath $file.FullName -Value $updated -NoNewline
-            Write-Host "Updated: $($file.FullName.Substring($root.Length + 1))"
+        if ([string]::IsNullOrEmpty($content)) {
+            continue
+        }
+
+        if ($content.Contains($OldName)) {
+            $updated = $content.Replace($OldName, $NewName)
+            if ($PSCmdlet.ShouldProcess($file.FullName, "Replace $OldName with $NewName")) {
+                [System.IO.File]::WriteAllText($file.FullName, $updated)
+                Write-Host "Updated: $($file.FullName.Substring($root.Length + 1))"
+            }
         }
     }
+    catch {
+        $failedFiles.Add($file.FullName)
+        Write-Warning "Could not update '$($file.FullName)'. Close any app using this file, then run this script again. $($_.Exception.Message)"
+    }
+}
+
+if ($failedFiles.Count -gt 0) {
+    Write-Host ""
+    Write-Warning "Rename paused before file/folder renames because $($failedFiles.Count) file(s) could not be updated."
+    Write-Host "Close Visual Studio, VS Code, running dotnet processes, or file preview tools, then rerun:"
+    Write-Host "  .\Scripts\Rename-Template.ps1 -NewName $NewName"
+    exit 1
 }
 
 Write-Host "Renaming files..."

@@ -10,19 +10,22 @@
     {
         var currentUrl = NavManager.Uri;
         var baseUrl = NavManager.BaseUri;
-        var returnUrl = currentUrl.Replace(baseUrl, "/");
+        var localReturnUrl = currentUrl.Replace(baseUrl, "/");
+        var loginReturnUrl = SsoNavigation.Settings.IsClient
+            ? currentUrl
+            : localReturnUrl;
         var state = await AuthStateProvider.GetAuthenticationStateAsync();
 
         if (state.User.Identity?.IsAuthenticated == true)
         {
             Snackbar.Add("You are signed in but not authorized to access this page.", Severity.Error);
             NavManager.NavigateTo(
-                $"/unauthorized?urlReturn={Uri.EscapeDataString(returnUrl)}",
+                $"/unauthorized?urlReturn={Uri.EscapeDataString(localReturnUrl)}",
                 forceLoad: false);
             return;
         }
 
         Snackbar.Add("Please sign in to continue.", Severity.Warning);
-        NavManager.NavigateTo(SsoNavigation.BuildLoginUrl(returnUrl), SsoNavigation.Settings.IsClient);
+        NavManager.NavigateTo(SsoNavigation.BuildLoginUrl(loginReturnUrl), SsoNavigation.Settings.IsClient);
     }
 }
